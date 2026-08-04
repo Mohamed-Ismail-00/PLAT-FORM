@@ -50,3 +50,10 @@ setup_middleware(app)
 # ── Routers ──────────────────────────────────────────────────────
 app.include_router(health_router)
 app.include_router(api_v1_router, prefix="/api/v1")
+
+
+@app.get("/api")
+@app.get("/api/v1")
+async def root_status():
+    return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
+

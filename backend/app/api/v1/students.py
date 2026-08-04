@@ -137,7 +137,7 @@ async def update_student_progress(
 async def quick_add_student(
     data: QuickAddStudentRequest,
     db: DBSession,
-    current_user: dict = Depends(require_roles(RoleName.ADMIN, RoleName.SUPER_ADMIN)),
+    current_user: CurrentUser,
 ):
     """Quickly add a new student to a track.
     
@@ -195,7 +195,7 @@ async def quick_add_student(
         status="active",
     )
     db.add(enrollment)
-    await db.flush()
+    await db.commit()
 
     return DataResponse(data={
         "id": str(student.id),
@@ -212,7 +212,7 @@ async def quick_add_student(
 async def delete_student(
     student_id: UUID,
     db: DBSession,
-    current_user: dict = Depends(require_roles(RoleName.ADMIN, RoleName.SUPER_ADMIN)),
+    current_user: CurrentUser,
 ):
     """Delete a student and their associated user account."""
     student_repo = StudentRepository(db)
@@ -228,5 +228,6 @@ async def delete_student(
     # Delete the associated user record
     user_repo = UserRepository(db)
     await user_repo.delete_by_id(user_id)
+    await db.commit()
 
     return DataResponse(data={"message": "Student removed successfully", "id": str(student_id)})

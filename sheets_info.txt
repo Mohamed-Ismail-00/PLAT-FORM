@@ -1,0 +1,20 @@
+Sheet ALL:
+Name, phone number, Emails, Track
+
+Sheet Ai:
+الاسم الرباعي,  , رقم الموبايل المربوط بواتساب, Target Internship Track, Week 1, Week2, Week3, Week 4, Task 1, Task 2, Task 3, Task 4, Task 5, Task 6, Notes, Excuse , Warn
+
+Sheet Sw:
+الاسم الرباعي, البريد الإلكتروني, رقم الموبايل المربوط بواتساب, Target Internship Track, Week 1, Week 2, Week 3, Week 4, Task 1 , Task 2, Notes, Excuses, Warning
+
+Sheet Digital Marketing:
+Name, Phone Number, Email, Track, session 1, session 2, session 3, Week 4, Task 1, Task 2, Notes, Excuses, Warning, NDA and Id
+
+Sheet Admin:
+Name, Phone , Email, Track, Week 1, Week 2, Week 3, Week 4, Notes, Excuses, Warning, NDA and Id
+
+Sheet Events:
+Name, Phone Number, Email, Track, session 1, session 2, session 3, session 4, Task 1, Notes, Excuses, Warning, Task 1 link
+
+Sheet HR:
+Name, Phone Number, Email, Track, session 1, session 2, session 3, session 4, Task 1, Task 2, Task 3, Notes, Excuses

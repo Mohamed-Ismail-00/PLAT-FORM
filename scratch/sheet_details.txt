@@ -1,0 +1,57 @@
+Sheet Names: ['ALL', 'Ai', 'Sw', 'Digital Marketing', 'Admin', 'Events', 'HR']
+
+
+=== Sheet: ALL (Rows: 92) ===
+Columns (4): ['Name', 'phone number', 'Emails', 'Track']
+Head 3:
+                               Name phone number                       Emails      Track
+0  Basant SaadEldin Mohammed Mosaad   1550460233  basant.saadeldeen@gmail.com  ai and sw
+1            عبدالله أحمد محمد عيسي   1147275471   abdullaheissa588@gmail.com  ai and sw
+2       fatma mohamed youssef sayed   1014504945     fatimaaldaly05@gmail.com  ai and sw
+
+=== Sheet: Ai (Rows: 15) ===
+Columns (17): ['الاسم الرباعي', ' ', 'رقم الموبايل المربوط بواتساب', 'Target Internship Track', 'Week 1', 'Week2', 'Week3', 'Week 4', 'Task 1', 'Task 2', 'Task 3', 'Task 4', 'Task 5', 'Task 6', 'Notes', 'Excuse ', 'Warn']
+Head 3:
+                      الاسم الرباعي                                رقم الموبايل المربوط بواتساب Target Internship Track  Week 1  Week2  Week3  Week 4  Task 1  Task 2  Task 3  Task 4  Task 5  Task 6  Notes  Excuse   Warn
+0  Basant SaadEldin Mohammed Mosaad    basant.saadeldeen@gmail.com                   1550460233   الذكاء الاصطناعي (AI)    True   True   True   False    True    True    True    True   False   False    NaN      NaN   NaN
+1        Zeyad Mohamed Ahmed Refaey      zeyad.mo.refaey@gmail.com                0102 688 7363   الذكاء الاصطناعي (AI)    True   True   True   False   False   False   False   False   False   False    NaN      NaN   NaN
+2     Nour Hossam Abdalrzak Mahmoud  nourhossamabdalrzak@gmail.com                   1091132189   الذكاء الاصطناعي (AI)    True   True   True   False    True    True    True    True   False   False    NaN      NaN   NaN
+
+=== Sheet: Sw (Rows: 47) ===
+Columns (13): ['الاسم الرباعي', 'البريد الإلكتروني', 'رقم الموبايل المربوط بواتساب', 'Target Internship Track', 'Week 1', 'Week 2', 'Week 3', 'Week 4', 'Task 1 ', 'Task 2', 'Notes', 'Excuses', 'Warning']
+Head 3:
+                             الاسم الرباعي                 البريد الإلكتروني رقم الموبايل المربوط بواتساب                 Target Internship Track  Week 1  Week 2  Week 3  Week 4  Task 1   Task 2  Notes  Excuses  Warning
+0              fatma mohamed youssef sayed          fatimaaldaly05@gmail.com                   1014504945  تطوير البرمجيات (Software Development)   False   False   False   False    False   False    NaN      NaN      NaN
+1                محمد احمد محمد عبد الوهاب      ahmd.mohamed200515@gmail.com                   1123051676  تطوير البرمجيات (Software Development)   False   False   False   False    False   False    NaN      NaN      NaN
+2  Abdelrahman Mohamed Abdelaziz Elkhateeb  abdelrahmanelkhateeb10@gmail.com                   1018998166  تطوير البرمجيات (Software Development)    True    True   False   False     True    True    NaN      NaN      NaN
+
+=== Sheet: Digital Marketing (Rows: 11) ===
+Columns (14): ['Name', 'Phone Number', 'Email', 'Track', 'session 1', 'session 2', 'session 3', 'Week 4', 'Task 1', 'Task 2', 'Notes', 'Excuses', 'Warning', 'NDA and Id']
+Head 3:
+                             Name  Phone Number                      Email Track  session 1  session 2  session 3  Week 4  Task 1  Task 2  Notes  Excuses  Warning  NDA and Id
+0  Mahmoud Ramadan mohamed gameaa    1099027999     gameaa.media@gmail.com    dm      False      False      False   False   False   False    NaN      NaN      NaN         NaN
+1      Hoda hanafy mahmoud hanafy    1144234252    Hodahanafy121@gmail.com    dm       True       True       True   False    True    True    NaN      NaN      NaN         NaN
+2          اسلام تامر عبدربه امين    1126793922  eslam.tamer.226@gmail.com    dm       True       True       True   False    True    True    NaN      NaN      NaN         NaN
+
+=== Sheet: Admin (Rows: 7) ===
+Columns (12): ['Name', 'Phone ', 'Email', 'Track', 'Week 1', 'Week 2', 'Week 3', 'Week 4', 'Notes', 'Excuses', 'Warning', 'NDA and Id']
+Head 3:
+                                 Name      Phone                      Email  Track  Week 1  Week 2  Week 3  Week 4  Notes  Excuses  Warning  NDA and Id
+0            ساره احمد حامد عبدالخالق  1025447331   sarahmedhamed@gmail.com  Admin   False   False   False   False    NaN      NaN      NaN         NaN
+1  hadwa yasser mohamed abdel-motaleb  1100496883  hadwayasser911@gmail.com  Admin   False   False   False   False    NaN      NaN      NaN         NaN
+2          محمد مدحت علي عبد الفتاح م  1010085045   mohmedhat1243@gmail.co.  Admin   False   False   False   False    NaN      NaN      NaN         NaN
+
+=== Sheet: Events (Rows: 11) ===
+Columns (13): ['Name', 'Phone Number', 'Email', 'Track', 'session 1', 'session 2', 'session 3', 'session 4', 'Task 1', 'Notes', 'Excuses', 'Warning', 'Task 1 link']
+Head 3:
+                       Name  Phone Number                     Email   Track  session 1  session 2  session 3  session 4  Task 1  Notes  Excuses  Warning                                                               Task 1 link
+0  Mariam Ahmed Ahmed Salem    1099881591   mariamsalemui@gmail.com  Events      False       True      False      False    True    NaN      NaN      NaN  https://drive.google.com/drive/folders/1H_vaOD2wsnrAMTEnCw-HOOv-y8KwJc74
+1    علي ابراهيم محمود سمير    1557152445  3liebrahim2006@gmail.com  Events       True       True      False      False    True    NaN      NaN      NaN                                                             Edugate ideas
+2               Malak Amgad    1001373460   Malakamgad515@gmail.com  Events       True       True      False      False    True    NaN      NaN      NaN                                               Malak Amgad Innovera Task 1
+
+=== Sheet: HR (Rows: 2) ===
+Columns (13): ['Name', 'Phone Number', 'Email', 'Track', 'session 1', 'session 2', 'session 3', 'session 4', 'Task 1', 'Task 2', 'Task 3', 'Notes', 'Excuses']
+Head 3:
+               Name  Phone Number                      Email Track  session 1  session 2  session 3  session 4  Task 1  Task 2  Task 3  Notes  Excuses
+0  Seif medhat emam    1112105023  01112105023seif@gmail.com    HR      False      False      False      False   False   False   False    NaN      NaN
+1      Ali mohamed     1271375122       alinegm832@gmail.com    HR      False      False      False      False   False   False   False    NaN      NaN

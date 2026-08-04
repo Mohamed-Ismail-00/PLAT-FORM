@@ -24,7 +24,7 @@ router = APIRouter(prefix="/students", tags=["Students"])
 @router.get("")
 async def list_students(
     db: DBSession,
-    current_user: dict = Depends(require_roles(RoleName.ADMIN, RoleName.SUPER_ADMIN, RoleName.INSTRUCTOR)),
+    current_user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=1000),
     search: str = None,

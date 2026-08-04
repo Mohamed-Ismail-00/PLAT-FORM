@@ -19,17 +19,11 @@ const UsersList: React.FC = () => {
   const fetchStudents = async () => {
     try {
       const res = await api.get('/students?page_size=1000');
-      setStudents(res.data.data);
+      if (res.data?.data && Array.isArray(res.data.data)) {
+        setStudents(res.data.data);
+      }
     } catch (err) {
-      console.error("Failed to fetch students from DB, using sample fallback track data", err);
-      setStudents([
-        { id: "stu-101", student_code: "AI-26-001", full_name: "Ahmed Hassan", email: "ahmed.ai@innovera.com", status: "active", track_name: "Artificial Intelligence", attended_lessons_count: 8, total_lessons_count: 10, completed_tasks_count: 9, total_tasks_count: 12 },
-        { id: "stu-102", student_code: "SW-26-001", full_name: "Mariam Ali", email: "mariam.sw@innovera.com", status: "active", track_name: "Software Engineering", attended_lessons_count: 10, total_lessons_count: 10, completed_tasks_count: 11, total_tasks_count: 12 },
-        { id: "stu-103", student_code: "DM-26-001", full_name: "Omar Khaled", email: "omar.dm@innovera.com", status: "active", track_name: "Digital Marketing", attended_lessons_count: 6, total_lessons_count: 10, completed_tasks_count: 7, total_tasks_count: 12 },
-        { id: "stu-104", student_code: "ADM-26-001", full_name: "Sara Mohamed", email: "sara.adm@innovera.com", status: "active", track_name: "Administration", attended_lessons_count: 9, total_lessons_count: 10, completed_tasks_count: 10, total_tasks_count: 12 },
-        { id: "stu-105", student_code: "EV-26-001", full_name: "Youssef Ibrahim", email: "youssef.ev@innovera.com", status: "active", track_name: "Events Management", attended_lessons_count: 7, total_lessons_count: 10, completed_tasks_count: 8, total_tasks_count: 12 },
-        { id: "stu-106", student_code: "HR-26-001", full_name: "Nouran Tarek", email: "nouran.hr@innovera.com", status: "active", track_name: "Human Resources", attended_lessons_count: 10, total_lessons_count: 10, completed_tasks_count: 12, total_tasks_count: 12 }
-      ]);
+      console.error("Failed to fetch students from DB:", err);
     } finally {
       setLoading(false);
     }

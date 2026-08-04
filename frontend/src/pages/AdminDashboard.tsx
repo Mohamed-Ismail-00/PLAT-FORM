@@ -23,13 +23,13 @@ const AdminDashboard: React.FC = () => {
       } catch (err) {
         console.error("Failed to fetch admin dashboard, using fallback data", err);
         setData({
-          overview: { total_students: 42, active_courses: 5, total_instructors: 4, average_score: 84.2 },
+          overview: { total_students: 93, active_students: 93, active_courses: 6, total_instructors: 4, average_score: 84.2 },
           rates: { attendance_rate: 85.0, quiz_pass_rate: 88.5, assignment_submission_rate: 82.0 },
-          classification_distribution: { excellent: 15, good: 18, average: 6, needs_attention: 2, high_risk: 1 }
+          classification_distribution: { excellent: 25, good: 40, average: 20, needs_attention: 5, high_risk: 3 }
         });
         setCourses([
-          { id: "c-1", title: "Full-Stack Web Development", total_lessons: 10, enrolled_count: 24, status: "active" },
-          { id: "c-2", title: "Data Science & AI Intelligence", total_lessons: 12, enrolled_count: 18, status: "active" }
+          { id: "c-1", title: "Full-Stack Web Development", total_lessons: 10, enrolled_students: 24, status: "active" },
+          { id: "c-2", title: "Data Science & AI Intelligence", total_lessons: 12, enrolled_students: 18, status: "active" }
         ]);
       } finally {
         setLoading(false);
@@ -41,14 +41,15 @@ const AdminDashboard: React.FC = () => {
   if (loading) return <div className="p-8">Loading dashboard...</div>;
   if (!data || !data.overview) return <div className="p-8">No data available.</div>;
 
-  const { overview, rates, classification_distribution } = data;
+  const { overview, classification_distribution } = data;
+  const totalStudents = overview.active_students ?? overview.total_students ?? 93;
 
   const pieData = [
-    { name: 'Excellent', value: classification_distribution.excellent, color: 'var(--success)' },
-    { name: 'Good', value: classification_distribution.good, color: 'var(--secondary-color)' },
-    { name: 'Average', value: classification_distribution.average, color: 'var(--info)' },
-    { name: 'Needs Attention', value: classification_distribution.needs_attention, color: 'var(--warning)' },
-    { name: 'High Risk', value: classification_distribution.high_risk, color: 'var(--error)' },
+    { name: 'Excellent', value: classification_distribution?.excellent || 0, color: 'var(--success)' },
+    { name: 'Good', value: classification_distribution?.good || 0, color: 'var(--secondary-color)' },
+    { name: 'Average', value: classification_distribution?.average || 0, color: 'var(--info)' },
+    { name: 'Needs Attention', value: classification_distribution?.needs_attention || 0, color: 'var(--warning)' },
+    { name: 'High Risk', value: classification_distribution?.high_risk || 0, color: 'var(--error)' },
   ];
 
   return (
@@ -63,7 +64,7 @@ const AdminDashboard: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
         <StatCard 
           title="Total Students" 
-          value={overview.active_students} 
+          value={totalStudents} 
           icon={<Users size={24} />} 
           trend={{ value: 12, isPositive: true }}
         />
@@ -74,7 +75,7 @@ const AdminDashboard: React.FC = () => {
         />
         <StatCard 
           title="Active Courses" 
-          value={overview.active_courses} 
+          value={overview.active_courses || overview.total_courses || 6} 
           icon={<Building2 size={24} />} 
         />
       </div>
@@ -106,22 +107,24 @@ const AdminDashboard: React.FC = () => {
 
         <Card title="Students per Track">
           <div className="flex flex-col gap-4" style={{ marginTop: '0.5rem', maxHeight: '250px', overflowY: 'auto' }}>
-            {courses.map(course => (
-              <div key={course.id}>
-                <div className="flex justify-between" style={{ marginBottom: '0.25rem' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-main)' }}>{course.title.replace(' Track', '')}</span>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{course.enrolled_students} students</span>
+            {courses.map(course => {
+              const studentCount = course.enrolled_students ?? course.enrolled_count ?? 0;
+              return (
+                <div key={course.id}>
+                  <div className="flex justify-between" style={{ marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-main)' }}>{course.title.replace(' Track', '')}</span>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{studentCount} students</span>
+                  </div>
+                  <ProgressBar 
+                    value={(studentCount / Math.max(1, totalStudents)) * 100} 
+                    color="var(--primary-color)" 
+                  />
                 </div>
-                <ProgressBar 
-                  value={(course.enrolled_students / Math.max(1, overview.active_students)) * 100} 
-                  color="var(--primary-color)" 
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       </div>
-
 
       {/* High Risk Students Table */}
       <Card>

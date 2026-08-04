@@ -30,14 +30,20 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Add a response interceptor to handle token expiry (simplified for now)
+// Add a response interceptor to handle token expiry safely
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Do NOT force window reload if we are already handling auth or on login page
+      const currentPath = window.location.pathname;
+      const requestUrl = error.config?.url || '';
+      if (currentPath !== '/login' && !requestUrl.includes('/auth/login') && !requestUrl.includes('/auth/me')) {
+        // Allow components to catch 401 instead of forcing hard window reload loop
+        console.warn("Unauthorized API call:", requestUrl);
+      }
     }
     return Promise.reject(error);
   }

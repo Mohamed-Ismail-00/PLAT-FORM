@@ -64,8 +64,17 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, o
           
           {isAdmin && (
             <>
+              <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginTop: '0.75rem', marginBottom: '0.35rem', paddingLeft: '1rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                Interns Program
+              </p>
               <NavItem to="/admin" icon={<LayoutDashboard size={20} />} label="Overview" onClick={onClose} />
-              <NavItem to="/admin/users" icon={<Users size={20} />} label="Students" onClick={onClose} />
+              <NavItem to="/admin/users" icon={<Users size={20} />} label="Intern Students" onClick={onClose} />
+
+              <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#A78BFA', marginTop: '1.25rem', marginBottom: '0.35rem', paddingLeft: '1rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                Innovera Students
+              </p>
+              <NavItem to="/admin/students-overview" icon={<Activity size={20} />} label="Students Overview" onClick={onClose} />
+              <NavItem to="/admin/students" icon={<BookOpen size={20} />} label="Course Students" onClick={onClose} />
             </>
           )}
         </div>

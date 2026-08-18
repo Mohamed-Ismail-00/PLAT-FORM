@@ -32,6 +32,17 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   const [saving, setSaving] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  // Sync state when props change or when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setAttended(initialAttended ?? 0);
+      setTotalLessons(initialTotalLessons || 10);
+      setCompletedTasks(initialCompletedTasks ?? 0);
+      setTotalTasks(initialTotalTasks || 12);
+      setToastMessage(null);
+    }
+  }, [isOpen, studentId, initialAttended, initialTotalLessons, initialCompletedTasks, initialTotalTasks]);
+
   if (!isOpen) return null;
 
   const attendancePct = totalLessons > 0 ? Math.round((attended / totalLessons) * 100) : 0;
@@ -45,18 +56,23 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
     setToastMessage(null);
 
     try {
-      await api.put(`/students/${studentId}/progress`, {
+      const res = await api.put(`/students/${studentId}/progress`, {
         attended_lessons_count: Number(attended),
         total_lessons_count: Number(totalLessons),
         completed_tasks_count: Number(completedTasks),
         total_tasks_count: Number(totalTasks),
       });
 
-      setToastMessage({ text: 'Student progress updated & scores recalculated successfully!', type: 'success' });
-      setTimeout(() => {
-        onSuccess();
-        onClose();
-      }, 1000);
+      const updatedData = res.data?.data || {};
+      onSuccess({
+        studentId,
+        attended_lessons_count: Number(attended),
+        total_lessons_count: Number(totalLessons),
+        completed_tasks_count: Number(completedTasks),
+        total_tasks_count: Number(totalTasks),
+        progress_percentage: updatedData.progress_percentage ?? estimatedOverall,
+      });
+      onClose();
     } catch (err: any) {
       console.error('Failed to update student progress:', err);
       setToastMessage({ text: err.response?.data?.detail || 'Failed to save changes. Please try again.', type: 'error' });

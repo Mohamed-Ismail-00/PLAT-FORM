@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { EditStudentProgressModal } from '../components/EditStudentProgressModal';
 import { AddStudentModal } from '../components/AddStudentModal';
 
-const UsersList: React.FC = () => {
+const StudentsSection: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,12 +18,12 @@ const UsersList: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const res = await api.get('/students?page_size=1000&program_type=intern');
+      const res = await api.get('/students?page_size=1000&program_type=student');
       if (res.data?.data && Array.isArray(res.data.data)) {
         setStudents(res.data.data);
       }
     } catch (err) {
-      console.error("Failed to fetch students from DB:", err);
+      console.error("Failed to fetch students:", err);
     } finally {
       setLoading(false);
     }
@@ -31,7 +31,7 @@ const UsersList: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
-      const res = await api.get('/courses?program_type=intern');
+      const res = await api.get('/courses?program_type=student');
       setCourses(res.data.data);
     } catch (err) {
       console.error("Failed to fetch courses", err);
@@ -43,9 +43,7 @@ const UsersList: React.FC = () => {
     fetchCourses();
   }, []);
 
-  // Build dynamic track list from courses
   const tracks = ['All', ...courses.map(c => c.title)];
-  // If no courses loaded, fallback to student-derived tracks
   const effectiveTracks = courses.length > 0 
     ? tracks 
     : ['All', ...Array.from(new Set(students.map(s => s.track_name).filter(Boolean)))];
@@ -54,7 +52,6 @@ const UsersList: React.FC = () => {
     ? students 
     : students.filter(s => s.track_name?.toLowerCase().includes(selectedTrack.toLowerCase()) || s.track_name === selectedTrack);
 
-  // Find the course_id for the currently selected track
   const selectedCourse = courses.find(c => c.title === selectedTrack);
 
   const handleProgressUpdated = (updatedInfo: any) => {
@@ -76,7 +73,6 @@ const UsersList: React.FC = () => {
     fetchStudents();
   };
 
-  // Handle student deletion
   const handleDeleteStudent = async (studentId: string, studentName: string) => {
     const confirmed = window.confirm(`Are you sure you want to remove "${studentName}" from the system?\n\nThis action cannot be undone.`);
     if (!confirmed) return;
@@ -93,6 +89,7 @@ const UsersList: React.FC = () => {
       fetchStudents();
     } catch (err: any) {
       console.error('Failed to delete student:', err);
+      // Revert if error occurs
       setStudents(backupStudents);
       setDeleteToast({ text: err.response?.data?.detail || 'Failed to remove student. Please try again.', type: 'error' });
       setTimeout(() => setDeleteToast(null), 4000);
@@ -108,10 +105,10 @@ const UsersList: React.FC = () => {
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--primary-color)', marginBottom: '0.25rem' }}>
-            Intern Students Management
+            Innovera Students Management
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>
-            Real-time track monitoring & direct progress updates for {students.length} interns across tracks.
+            Course students monitoring & progress tracking for {students.length} students across {courses.length} courses.
           </p>
         </div>
       </div>
@@ -155,9 +152,9 @@ const UsersList: React.FC = () => {
                   border: 'none',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  backgroundColor: isActive ? 'var(--secondary-color)' : 'var(--bg-secondary)',
+                  backgroundColor: isActive ? '#8B5CF6' : 'var(--bg-secondary)',
                   color: isActive ? '#FFFFFF' : 'var(--text-muted)',
-                  boxShadow: isActive ? '0 4px 12px rgba(0, 212, 170, 0.25)' : 'none',
+                  boxShadow: isActive ? '0 4px 12px rgba(139, 92, 246, 0.25)' : 'none',
                 }}
               >
                 {track} <span style={{ opacity: 0.8, fontSize: '0.75rem', marginLeft: '0.25rem' }}>({count})</span>
@@ -166,7 +163,7 @@ const UsersList: React.FC = () => {
           })}
         </div>
 
-        {/* Add Student Button — only when a specific track is selected */}
+        {/* Add Student Button */}
         {selectedTrack !== 'All' && selectedCourse && (
           <button
             onClick={() => setShowAddModal(true)}
@@ -180,9 +177,9 @@ const UsersList: React.FC = () => {
               fontWeight: 700,
               border: 'none',
               cursor: 'pointer',
-              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
               color: '#FFFFFF',
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+              boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
               transition: 'all 0.2s',
             }}
           >
@@ -199,8 +196,8 @@ const UsersList: React.FC = () => {
               <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                 <th style={{ padding: '0.875rem 1rem' }}>Student Name</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Code</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Track</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Attended Lectures</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Course</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Attended Sessions</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Tasks Done</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Progress</th>
                 <th style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>Actions</th>
@@ -237,15 +234,15 @@ const UsersList: React.FC = () => {
                       </td>
                       <td style={{ padding: '1rem' }}>
                         <span style={{ 
-                          backgroundColor: 'rgba(56, 189, 248, 0.12)', 
-                          color: '#38BDF8', 
+                          backgroundColor: 'rgba(139, 92, 246, 0.12)', 
+                          color: '#8B5CF6', 
                           padding: '0.25rem 0.625rem', 
                           borderRadius: '0.375rem', 
                           fontSize: '0.78rem',
                           fontWeight: 600,
-                          border: '1px solid rgba(56, 189, 248, 0.2)'
+                          border: '1px solid rgba(139, 92, 246, 0.2)'
                         }}>
-                          {student.track_name || 'General Track'}
+                          {student.track_name || 'General Course'}
                         </span>
                       </td>
                       <td style={{ padding: '1rem', color: 'var(--text-main)', fontWeight: 500 }}>
@@ -277,17 +274,17 @@ const UsersList: React.FC = () => {
                               fontSize: '0.8rem',
                               fontWeight: 600,
                               borderRadius: '0.375rem',
-                              background: 'linear-gradient(135deg, #0EA5E9 0%, #2563EB 100%)',
+                              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
                               color: '#FFFFFF',
                               border: 'none',
                               cursor: 'pointer',
-                              boxShadow: '0 2px 6px rgba(14, 165, 233, 0.3)'
+                              boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)'
                             }}
                           >
-                            ✏️ Edit Progress
+                            Edit Progress
                           </button>
                           <button 
-                            onClick={() => navigate(`/admin/users/${student.id}`)}
+                            onClick={() => navigate(`/admin/students/${student.id}`)}
                             className="btn btn-secondary"
                             style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
                           >
@@ -310,7 +307,7 @@ const UsersList: React.FC = () => {
                             }}
                             title="Remove student"
                           >
-                            {isBeingDeleted ? '⏳' : '🗑️'}
+                            {isBeingDeleted ? '...' : 'X'}
                           </button>
                         </div>
                       </td>
@@ -320,7 +317,7 @@ const UsersList: React.FC = () => {
               ) : (
                 <tr>
                   <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No students found for track "{selectedTrack}".
+                    No students found for course "{selectedTrack}".
                   </td>
                 </tr>
               )}
@@ -360,4 +357,4 @@ const UsersList: React.FC = () => {
   );
 };
 
-export default UsersList;
+export default StudentsSection;

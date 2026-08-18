@@ -1,4 +1,4 @@
-"""
+ئل"""
 Vercel Serverless Function entry point for FastAPI.
 This file makes the entire FastAPI application available as a single serverless function.
 """

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # ── Database ─────────────────────────────────────────────────
-    DATABASE_URL: str = "sqlite+aiosqlite:///./spi.db"
+    DATABASE_URL: str = "postgresql+asyncpg://neondb_owner:npg_BJlVDqji0K1w@ep-super-dew-ax5eli11.c-4.us-east-2.aws.neon.tech/neondb?ssl=require"
     DATABASE_ECHO: bool = False
 
     # ── Redis ────────────────────────────────────────────────────

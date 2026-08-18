@@ -28,8 +28,9 @@ async def list_students(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=1000),
     search: str = None,
+    program_type: str = None,
 ):
-    """List all students (paginated)."""
+    """List all students (paginated). Filter by program_type: 'intern' or 'student'."""
     repo = StudentRepository(db)
     students = await repo.get_all_with_users(offset=(page - 1) * page_size, limit=page_size)
     total = await repo.count()
@@ -38,8 +39,24 @@ async def list_students(
     for s in students:
         if search and search.lower() not in (s.user.full_name.lower() if s.user else ""):
             continue
-        track_name = s.enrollments[0].course.title if s.enrollments and s.enrollments[0].course else ""
-        enrollment = s.enrollments[0] if s.enrollments else None
+        
+        # Find the enrollment matching program_type filter
+        enrollment = None
+        track_name = ""
+        if s.enrollments:
+            for enr in s.enrollments:
+                if enr.course:
+                    if program_type and enr.course.program_type != program_type:
+                        continue
+                    enrollment = enr
+                    track_name = enr.course.title
+                    break
+            if not enrollment and program_type:
+                # This student has no enrollment matching the requested program_type
+                continue
+            if not enrollment and s.enrollments:
+                enrollment = s.enrollments[0]
+                track_name = enrollment.course.title if enrollment.course else ""
 
         items.append({
             "id": str(s.id), "student_code": s.student_code,
@@ -56,9 +73,10 @@ async def list_students(
             "created_at": s.created_at.isoformat() if s.created_at else None,
         })
 
+    filtered_total = len(items)
     return {
         "data": items,
-        "meta": {"page": page, "page_size": page_size, "total": total, "total_pages": -(-total // page_size)},
+        "meta": {"page": page, "page_size": page_size, "total": filtered_total, "total_pages": max(1, -(-filtered_total // page_size))},
     }
 
 
@@ -214,7 +232,7 @@ async def delete_student(
     db: DBSession,
     current_user: CurrentUser,
 ):
-    """Delete a student and their associated user account."""
+    """Delete a student and their associated user account cleanly."""
     student_repo = StudentRepository(db)
     student = await student_repo.get_with_user(student_id)
     if not student:
@@ -222,12 +240,12 @@ async def delete_student(
 
     user_id = student.user_id
 
-    # Delete student (cascades to enrollments, submissions, etc.)
-    await student_repo.delete_by_id(student_id)
-
-    # Delete the associated user record
-    user_repo = UserRepository(db)
-    await user_repo.delete_by_id(user_id)
+    # Clean cascade deletion in reverse dependency order
+    from sqlalchemy import text
+    await db.execute(text("DELETE FROM user_roles WHERE user_id = :uid"), {"uid": str(user_id)})
+    await db.execute(text("DELETE FROM enrollments WHERE student_id = :sid"), {"sid": str(student_id)})
+    await db.execute(text("DELETE FROM students WHERE id = :sid"), {"sid": str(student_id)})
+    await db.execute(text("DELETE FROM users WHERE id = :uid"), {"uid": str(user_id)})
     await db.commit()
 
     return DataResponse(data={"message": "Student removed successfully", "id": str(student_id)})

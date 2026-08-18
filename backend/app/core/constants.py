@@ -20,6 +20,11 @@ class RoleName(str, Enum):
     SUPER_ADMIN = "super_admin"
 
 
+class ProgramType(str, Enum):
+    INTERN = "intern"
+    STUDENT = "student"
+
+
 # ── Course ──────────────────────────────────────────────────────
 
 class CourseStatus(str, Enum):

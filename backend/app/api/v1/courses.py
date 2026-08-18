@@ -24,12 +24,15 @@ async def list_courses(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status: str = None,
+    program_type: str = None,
 ):
-    """List all courses (paginated)."""
+    """List all courses (paginated). Filter by program_type: 'intern' or 'student'."""
     repo = CourseRepository(db)
     filters = []
     if status:
         filters.append(Course.status == status)
+    if program_type:
+        filters.append(Course.program_type == program_type)
 
     courses = await repo.get_all(offset=(page - 1) * page_size, limit=page_size, filters=filters)
     total = await repo.count(filters=filters)

@@ -56,8 +56,9 @@ async def instructor_dashboard(db: DBSession, current_user: CurrentUser):
 async def admin_dashboard(
     db: DBSession,
     current_user: dict = Depends(require_roles(RoleName.ADMIN, RoleName.SUPER_ADMIN)),
+    program_type: str = "intern",
 ):
     """Get admin overview dashboard."""
     service = DashboardService(db)
-    result = await service.get_admin_dashboard()
+    result = await service.get_admin_dashboard(program_type=program_type)
     return DataResponse(data=result)

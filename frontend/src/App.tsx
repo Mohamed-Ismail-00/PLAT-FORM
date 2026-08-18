@@ -9,6 +9,8 @@ import StudentDashboard from './pages/StudentDashboard';
 import InstructorDashboard from './pages/InstructorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import UsersList from './pages/UsersList';
+import StudentsOverview from './pages/StudentsOverview';
+import StudentsSection from './pages/StudentsSection';
 
 function App() {
   return (
@@ -46,6 +48,21 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="admin/users/:id" element={
+              <ProtectedRoute role="admin">
+                <StudentDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="admin/students-overview" element={
+              <ProtectedRoute role="admin">
+                <StudentsOverview />
+              </ProtectedRoute>
+            } />
+            <Route path="admin/students" element={
+              <ProtectedRoute role="admin">
+                <StudentsSection />
+              </ProtectedRoute>
+            } />
+            <Route path="admin/students/:id" element={
               <ProtectedRoute role="admin">
                 <StudentDashboard />
               </ProtectedRoute>

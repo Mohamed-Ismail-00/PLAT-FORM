@@ -16,7 +16,7 @@ const AdminDashboard: React.FC = () => {
       try {
         const [dashRes, courseRes] = await Promise.all([
           api.get('/dashboard/admin'),
-          api.get('/courses')
+          api.get('/courses?program_type=intern')
         ]);
         setData(dashRes.data.data);
         setCourses(courseRes.data.data);

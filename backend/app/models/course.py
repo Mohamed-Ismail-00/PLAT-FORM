@@ -9,7 +9,7 @@ from typing import Optional
 from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.constants import CourseStatus, DifficultyLevel, LessonType
+from app.core.constants import CourseStatus, DifficultyLevel, LessonType, ProgramType
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
@@ -29,6 +29,7 @@ class Course(Base, UUIDMixin, TimestampMixin):
     difficulty_level: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     start_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    program_type: Mapped[str] = mapped_column(String(20), default=ProgramType.INTERN.value, nullable=False)
 
     # Relationships
     instructor: Mapped["Instructor"] = relationship(back_populates="courses")

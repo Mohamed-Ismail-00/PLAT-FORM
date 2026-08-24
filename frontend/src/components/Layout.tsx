@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -11,7 +12,9 @@ import {
   Users,
   Activity,
   Menu,
-  X
+  X,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -40,7 +43,7 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, o
       )}
 
       <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-        <div className="flex items-center justify-between" style={{ padding: '1.5rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="flex items-center justify-between" style={{ padding: '1.5rem 1rem', borderBottom: '1px solid var(--border-color)' }}>
           <img src="/assets/logo.png" alt="Innovera" style={{ height: '36px', objectFit: 'contain' }} />
           <button className="mobile-close-btn" onClick={onClose}>
             <X size={20} color="#94A3B8" />
@@ -146,7 +149,7 @@ const NavItem: React.FC<{ to: string, icon: React.ReactNode, label: string, onCl
         borderRadius: '0.5rem',
         textDecoration: 'none',
         color: isActive ? '#FFFFFF' : '#94A3B8',
-        backgroundColor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+        backgroundColor: isActive ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
         fontWeight: isActive ? 600 : 500,
         transition: 'all 0.2s ease-in-out',
         position: 'relative',
@@ -162,6 +165,7 @@ const NavItem: React.FC<{ to: string, icon: React.ReactNode, label: string, onCl
 
 const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }) => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -170,21 +174,40 @@ const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }
   };
 
   return (
-    <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.5rem', background: '#FFFFFF', borderBottom: '1px solid var(--border-color)' }}>
+    <header className="header">
       <div className="flex items-center gap-3">
         <button className="mobile-menu-btn" onClick={onOpenMobileMenu}>
-          <Menu size={24} color="#0F172A" />
+          <Menu size={24} color="var(--text-main)" />
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
             Welcome, {user?.first_name || 'Admin'}
           </span>
-          <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: 'rgba(79, 70, 229, 0.1)', color: '#4F46E5', fontWeight: 600 }}>
+          <span className="user-badge">
             {user?.roles?.[0] || 'Admin'}
           </span>
         </div>
       </div>
+
       <div className="flex items-center gap-3">
+        {/* Dark / Light Mode Toggle Button */}
+        <button 
+          onClick={toggleTheme}
+          className="theme-toggle-btn"
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          style={{
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          {theme === 'dark' ? (
+            <Sun size={18} color="#FBBF24" style={{ animation: 'fadeIn 0.2s ease' }} />
+          ) : (
+            <Moon size={18} color="#6366F1" style={{ animation: 'fadeIn 0.2s ease' }} />
+          )}
+        </button>
+
+        {/* Sign Out Button */}
         <button 
           onClick={handleLogout}
           style={{
@@ -195,18 +218,18 @@ const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }
             fontSize: '0.82rem',
             fontWeight: 600,
             color: '#DC2626',
-            backgroundColor: '#FEE2E2',
-            border: '1px solid #FECACA',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
             borderRadius: '0.5rem',
             cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#FCA5A5';
-            e.currentTarget.style.color = '#991B1B';
+            e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+            e.currentTarget.style.color = '#EF4444';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#FEE2E2';
+            e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
             e.currentTarget.style.color = '#DC2626';
           }}
         >
@@ -222,7 +245,7 @@ export const DashboardLayout: React.FC = () => {
   const { user, loading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (loading) return <div className="flex h-screen items-center justify-center font-bold">Loading...</div>;
+  if (loading) return <div className="flex h-screen items-center justify-center font-bold" style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' }}>Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
   return (

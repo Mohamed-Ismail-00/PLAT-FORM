@@ -20,9 +20,9 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, o
   
   if (!user) return null;
 
-  const isStudent = user.roles.includes('student');
-  const isInstructor = user.roles.includes('instructor');
-  const isAdmin = user.roles.includes('admin') || user.roles.includes('super_admin');
+  const isStudent = user.roles?.includes('student');
+  const isInstructor = user.roles?.includes('instructor');
+  const isAdmin = user.roles?.includes('admin') || user.roles?.includes('super_admin');
 
   const handleLogout = () => {
     logout();
@@ -101,7 +101,7 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, o
           </div>
           <button
             onClick={handleLogout}
-            title="تسجيل الخروج"
+            title="Sign Out"
             style={{
               background: 'rgba(239, 68, 68, 0.12)',
               border: '1px solid rgba(239, 68, 68, 0.25)',
@@ -177,7 +177,7 @@ const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
-            مرحباً، {user?.first_name || 'Admin'}
+            Welcome, {user?.first_name || 'Admin'}
           </span>
           <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: 'rgba(79, 70, 229, 0.1)', color: '#4F46E5', fontWeight: 600 }}>
             {user?.roles?.[0] || 'Admin'}
@@ -211,7 +211,7 @@ const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }
           }}
         >
           <LogOut size={16} />
-          <span>تسجيل خروج</span>
+          <span>Sign Out</span>
         </button>
       </div>
     </header>
@@ -222,7 +222,7 @@ export const DashboardLayout: React.FC = () => {
   const { user, loading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (loading) return <div className="flex h-screen items-center justify-center font-bold">جاري التحميل...</div>;
+  if (loading) return <div className="flex h-screen items-center justify-center font-bold">Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
   return (
@@ -244,11 +244,11 @@ export const ProtectedRoute: React.FC<{ role: string, children: React.ReactNode 
   if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
   
-  const hasRole = user.roles.includes(role) || user.roles.includes('super_admin');
+  const hasRole = user.roles?.includes(role) || user.roles?.includes('super_admin');
   
   if (!hasRole) {
-    if (user.roles.includes('instructor')) return <Navigate to="/instructor" replace />;
-    if (user.roles.includes('admin')) return <Navigate to="/admin" replace />;
+    if (user.roles?.includes('instructor')) return <Navigate to="/instructor" replace />;
+    if (user.roles?.includes('admin')) return <Navigate to="/admin" replace />;
     return <Navigate to="/student" replace />;
   }
   

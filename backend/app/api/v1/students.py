@@ -4,6 +4,7 @@ Student API routes.
 
 import re
 from uuid import UUID
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 
@@ -137,7 +138,6 @@ async def update_student_progress(
         meta = dict(student.metadata_ or {})
         if data.feedback is not None:
             meta["feedback"] = data.feedback
-            from datetime import timezone
             meta["feedback_updated_at"] = datetime.now(timezone.utc).isoformat()
         student.metadata_ = meta
 
@@ -150,6 +150,8 @@ async def update_student_progress(
         enrollment_id=enrollment.id,
         course_id=enrollment.course_id,
     )
+
+    await db.commit()
 
     return DataResponse(data={
         "student_id": str(student_id),

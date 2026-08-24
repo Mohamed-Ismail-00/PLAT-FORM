@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, Navigate } from 'react-router-dom';
+import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, 
@@ -15,13 +15,19 @@ import {
 } from 'lucide-react';
 
 const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   
   if (!user) return null;
 
   const isStudent = user.roles.includes('student');
   const isInstructor = user.roles.includes('instructor');
   const isAdmin = user.roles.includes('admin') || user.roles.includes('super_admin');
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <>
@@ -79,20 +85,47 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, o
           )}
         </div>
 
-        <div className="sidebar-footer">
-          <div className="user-profile-container">
+        <div className="sidebar-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem' }}>
+          <div className="user-profile-container" style={{ flex: 1, minWidth: 0 }}>
             <div className="user-avatar">
-              {user.first_name[0]}{user.last_name[0]}
+              {(user.first_name?.[0] || 'I')}{(user.last_name?.[0] || 'A')}
             </div>
-            <div className="user-info">
-              <p className="user-name">
+            <div className="user-info" style={{ overflow: 'hidden' }}>
+              <p className="user-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                 {user.first_name} {user.last_name}
               </p>
               <p className="user-role">
-                {user.roles[0].charAt(0).toUpperCase() + user.roles[0].slice(1)}
+                {(user.roles?.[0] || 'Admin').toUpperCase()}
               </p>
             </div>
           </div>
+          <button
+            onClick={handleLogout}
+            title="تسجيل الخروج"
+            style={{
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              color: '#F87171',
+              padding: '0.5rem',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+              marginLeft: '0.5rem'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+              e.currentTarget.style.color = '#EF4444';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+              e.currentTarget.style.color = '#F87171';
+            }}
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
     </>
@@ -128,16 +161,57 @@ const NavItem: React.FC<{ to: string, icon: React.ReactNode, label: string, onCl
 };
 
 const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
-    <header className="header">
+    <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.5rem', background: '#FFFFFF', borderBottom: '1px solid var(--border-color)' }}>
       <div className="flex items-center gap-3">
         <button className="mobile-menu-btn" onClick={onOpenMobileMenu}>
           <Menu size={24} color="#0F172A" />
         </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
+            مرحباً، {user?.first_name || 'Admin'}
+          </span>
+          <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: 'rgba(79, 70, 229, 0.1)', color: '#4F46E5', fontWeight: 600 }}>
+            {user?.roles?.[0] || 'Admin'}
+          </span>
+        </div>
       </div>
-      <div className="flex items-center gap-4">
-        <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-          <Settings size={20} />
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={handleLogout}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.45rem 0.85rem',
+            fontSize: '0.82rem',
+            fontWeight: 600,
+            color: '#DC2626',
+            backgroundColor: '#FEE2E2',
+            border: '1px solid #FECACA',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#FCA5A5';
+            e.currentTarget.style.color = '#991B1B';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#FEE2E2';
+            e.currentTarget.style.color = '#DC2626';
+          }}
+        >
+          <LogOut size={16} />
+          <span>تسجيل خروج</span>
         </button>
       </div>
     </header>
@@ -148,7 +222,7 @@ export const DashboardLayout: React.FC = () => {
   const { user, loading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  if (loading) return <div className="flex h-screen items-center justify-center font-bold">جاري التحميل...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
   return (

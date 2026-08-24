@@ -17,8 +17,10 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Login removed as requested */}
+          {/* Public Login Route */}
+          <Route path="/login" element={<Login />} />
           
+          {/* Protected Dashboard Routes */}
           <Route path="/" element={<DashboardLayout />}>
             <Route index element={<Navigate to="/admin" replace />} />
             
@@ -70,7 +72,7 @@ function App() {
           </Route>
           
           {/* Catch all */}
-          <Route path="*" element={<Navigate to="/admin" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

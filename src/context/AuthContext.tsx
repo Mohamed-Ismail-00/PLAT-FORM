@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   first_name: string;
@@ -16,73 +15,39 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  login: () => {},
-  logout: () => {},
-});
-
-export const useAuth = () => useContext(AuthContext);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        let token = localStorage.getItem('access_token');
-        if (token) {
-          try {
-            const res = await api.get('/auth/me');
-            setUser(res.data.data);
-            return;
-          } catch (e) {
-            console.warn("Existing token invalid or expired, re-authenticating...", e);
-            localStorage.removeItem('access_token');
-          }
-        }
-
-        // Perform auto-login as admin
-        const loginRes = await api.post('/auth/login', {
-          email: 'admin@innovera.com',
-          password: 'Admin@2026'
-        });
-        const newToken = loginRes.data.data.access_token;
-        const loggedUser = loginRes.data.data.user;
-        localStorage.setItem('access_token', newToken);
-        localStorage.setItem('user', JSON.stringify(loggedUser));
-        setUser(loggedUser);
-      } catch (error) {
-        console.error("Auto-login failed:", error);
-        const fallbackUser: User = {
-          id: "00000000-0000-0000-0000-000000000001",
-          email: "admin@innovera.com",
-          first_name: "Admin",
-          last_name: "User",
-          roles: ["admin", "super_admin"]
-        };
-        setUser(fallbackUser);
-      } finally {
-        setLoading(false);
+    try {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('access_token');
+      if (storedUser && token) {
+        setUser(JSON.parse(storedUser));
+      } else {
+        setUser(null);
       }
-    };
-
-    initAuth();
+    } catch (e) {
+      console.error('Failed to parse user session:', e);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const login = (token: string, user: User) => {
+  const login = (token: string, loggedUser: User) => {
     localStorage.setItem('access_token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    setUser(user);
+    localStorage.setItem('user', JSON.stringify(loggedUser));
+    setUser(loggedUser);
   };
 
   const logout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     setUser(null);
-    window.location.href = '/login';
   };
 
   return (
@@ -90,4 +55,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

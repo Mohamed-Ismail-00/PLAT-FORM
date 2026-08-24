@@ -4,6 +4,7 @@ import { Card } from '../components/UI';
 import { useNavigate } from 'react-router-dom';
 import { EditStudentProgressModal } from '../components/EditStudentProgressModal';
 import { AddStudentModal } from '../components/AddStudentModal';
+import { MessageSquare, Plus, Trash2, Edit3, Eye } from 'lucide-react';
 
 const StudentsSection: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
@@ -65,6 +66,7 @@ const StudentsSection: React.FC = () => {
             completed_tasks_count: updatedInfo.completed_tasks_count,
             total_tasks_count: updatedInfo.total_tasks_count,
             progress_percentage: updatedInfo.progress_percentage,
+            feedback: updatedInfo.feedback,
           };
         }
         return s;
@@ -74,12 +76,12 @@ const StudentsSection: React.FC = () => {
   };
 
   const handleDeleteStudent = async (studentId: string, studentName: string) => {
-    const confirmed = window.confirm(`Are you sure you want to remove "${studentName}" from the system?\n\nThis action cannot be undone.`);
+    const confirmed = window.confirm(`Are you sure you want to remove "${studentName}" from the course students database?\n\nThis action cannot be undone.`);
     if (!confirmed) return;
 
     setDeletingId(studentId);
     const backupStudents = [...students];
-    // Optimistic instant delete
+    // Optimistic UI delete
     setStudents(prev => prev.filter(s => s.id !== studentId));
     setDeleteToast({ text: `✅ ${studentName} has been removed successfully.`, type: 'success' });
     setTimeout(() => setDeleteToast(null), 3000);
@@ -89,9 +91,8 @@ const StudentsSection: React.FC = () => {
       fetchStudents();
     } catch (err: any) {
       console.error('Failed to delete student:', err);
-      // Revert if error occurs
       setStudents(backupStudents);
-      setDeleteToast({ text: err.response?.data?.detail || 'Failed to remove student. Please try again.', type: 'error' });
+      setDeleteToast({ text: err.response?.data?.detail || 'Failed to remove student.', type: 'error' });
       setTimeout(() => setDeleteToast(null), 4000);
     } finally {
       setDeletingId(null);
@@ -104,16 +105,15 @@ const StudentsSection: React.FC = () => {
     <div className="flex flex-col gap-6 animate-fade-in" style={{ paddingBottom: '2rem' }}>
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--primary-color)', marginBottom: '0.25rem' }}>
-            Innovera Students Management
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+            Course Students Directory
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>
-            Course students monitoring & progress tracking for {students.length} students across {courses.length} courses.
+            Real-time track monitoring, progress scoring & instructor feedback for {students.length} Innovera course students.
           </p>
         </div>
       </div>
 
-      {/* Delete Toast Notification */}
       {deleteToast && (
         <div
           style={{
@@ -131,7 +131,7 @@ const StudentsSection: React.FC = () => {
         </div>
       )}
 
-      {/* Track Filter Tabs + Add Student Button */}
+      {/* Course Filter Tabs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
         <div className="flex flex-wrap gap-2">
           {effectiveTracks.map((track) => {
@@ -149,12 +149,12 @@ const StudentsSection: React.FC = () => {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: 600,
-                  border: 'none',
+                  border: isActive ? '1px solid transparent' : '1px solid var(--border-color)',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  backgroundColor: isActive ? '#8B5CF6' : 'var(--bg-secondary)',
+                  background: isActive ? 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)' : 'var(--bg-card)',
                   color: isActive ? '#FFFFFF' : 'var(--text-muted)',
-                  boxShadow: isActive ? '0 4px 12px rgba(139, 92, 246, 0.25)' : 'none',
+                  boxShadow: isActive ? '0 4px 12px rgba(168, 85, 247, 0.3)' : 'none',
                 }}
               >
                 {track} <span style={{ opacity: 0.8, fontSize: '0.75rem', marginLeft: '0.25rem' }}>({count})</span>
@@ -163,41 +163,40 @@ const StudentsSection: React.FC = () => {
           })}
         </div>
 
-        {/* Add Student Button */}
         {selectedTrack !== 'All' && selectedCourse && (
           <button
             onClick={() => setShowAddModal(true)}
             style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              padding: '0.5rem 1rem',
-              borderRadius: '0.5rem',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
               color: '#FFFFFF',
-              boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
               transition: 'all 0.2s',
             }}
           >
-            <span style={{ fontSize: '1rem' }}>+</span> Add Student
+            <Plus size={16} />
+            <span>Add Student to {selectedTrack}</span>
           </button>
         )}
       </div>
 
-      {/* Student List Table */}
-      <Card>
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+          <table>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                <th style={{ padding: '0.875rem 1rem' }}>Student Name</th>
+              <tr>
+                <th style={{ padding: '0.875rem 1rem' }}>Student Name & Feedback</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Code</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Course</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Attended Sessions</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Attended Lectures</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Tasks Done</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Progress</th>
                 <th style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>Actions</th>
@@ -226,23 +225,46 @@ const StudentsSection: React.FC = () => {
                       }}
                     >
                       <td style={{ padding: '1rem' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{student.full_name}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{student.full_name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.email}</div>
+                        {student.feedback && (
+                          <div 
+                            style={{ 
+                              marginTop: '0.4rem', 
+                              fontSize: '0.75rem', 
+                              color: '#A855F7', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '0.35rem', 
+                              background: 'rgba(168, 85, 247, 0.1)', 
+                              padding: '0.2rem 0.55rem', 
+                              borderRadius: '0.375rem', 
+                              border: '1px solid rgba(168, 85, 247, 0.25)',
+                              maxWidth: '260px'
+                            }}
+                            title={`Feedback: ${student.feedback}`}
+                          >
+                            <MessageSquare size={12} style={{ flexShrink: 0 }} />
+                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {student.feedback}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '1rem', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.85rem' }}>
                         {student.student_code}
                       </td>
                       <td style={{ padding: '1rem' }}>
                         <span style={{ 
-                          backgroundColor: 'rgba(139, 92, 246, 0.12)', 
-                          color: '#8B5CF6', 
+                          backgroundColor: 'rgba(168, 85, 247, 0.12)', 
+                          color: '#A855F7', 
                           padding: '0.25rem 0.625rem', 
                           borderRadius: '0.375rem', 
                           fontSize: '0.78rem',
                           fontWeight: 600,
-                          border: '1px solid rgba(139, 92, 246, 0.2)'
+                          border: '1px solid rgba(168, 85, 247, 0.25)'
                         }}>
-                          {student.track_name || 'General Course'}
+                          {student.track_name || 'Innovera Course'}
                         </span>
                       </td>
                       <td style={{ padding: '1rem', color: 'var(--text-main)', fontWeight: 500 }}>
@@ -274,21 +296,26 @@ const StudentsSection: React.FC = () => {
                               fontSize: '0.8rem',
                               fontWeight: 600,
                               borderRadius: '0.375rem',
-                              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                              background: 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)',
                               color: '#FFFFFF',
                               border: 'none',
                               cursor: 'pointer',
-                              boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)'
+                              boxShadow: '0 2px 6px rgba(168, 85, 247, 0.3)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem'
                             }}
                           >
-                            Edit Progress
+                            <Edit3 size={13} />
+                            <span>Edit Progress</span>
                           </button>
                           <button 
                             onClick={() => navigate(`/admin/students/${student.id}`)}
                             className="btn btn-secondary"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                           >
-                            Dashboard
+                            <Eye size={13} />
+                            <span>Dashboard</span>
                           </button>
                           <button
                             onClick={() => handleDeleteStudent(student.id, student.full_name)}
@@ -304,10 +331,13 @@ const StudentsSection: React.FC = () => {
                               cursor: isBeingDeleted ? 'not-allowed' : 'pointer',
                               transition: 'all 0.2s',
                               opacity: isBeingDeleted ? 0.5 : 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
                             }}
                             title="Remove student"
                           >
-                            {isBeingDeleted ? '...' : 'X'}
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -337,6 +367,7 @@ const StudentsSection: React.FC = () => {
           initialTotalLessons={editingStudent.total_lessons_count ?? 10}
           initialCompletedTasks={editingStudent.completed_tasks_count ?? 0}
           initialTotalTasks={editingStudent.total_tasks_count ?? 12}
+          initialFeedback={editingStudent.feedback || ''}
           onSuccess={handleProgressUpdated}
         />
       )}

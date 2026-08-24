@@ -24,6 +24,7 @@ class StudentProgressUpdate(BaseModel):
     total_lessons_count: int = Field(10, ge=1)
     completed_tasks_count: int = Field(..., ge=0)
     total_tasks_count: int = Field(12, ge=1)
+    feedback: Optional[str] = None
 
 
 class EnrollmentResponse(BaseModel):

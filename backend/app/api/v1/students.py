@@ -58,6 +58,7 @@ async def list_students(
                 enrollment = s.enrollments[0]
                 track_name = enrollment.course.title if enrollment.course else ""
 
+        feedback = (s.metadata_ or {}).get("feedback") if hasattr(s, "metadata_") and s.metadata_ else None
         items.append({
             "id": str(s.id), "student_code": s.student_code,
             "full_name": s.user.full_name if s.user else "",
@@ -70,6 +71,7 @@ async def list_students(
             "completed_tasks_count": enrollment.completed_tasks_count if enrollment else 0,
             "total_tasks_count": enrollment.total_tasks_count if enrollment else 12,
             "progress_percentage": enrollment.progress_percentage if enrollment else 0,
+            "feedback": feedback,
             "created_at": s.created_at.isoformat() if s.created_at else None,
         })
 
@@ -129,6 +131,16 @@ async def update_student_progress(
     task_pct = (data.completed_tasks_count / data.total_tasks_count * 100) if data.total_tasks_count > 0 else 0
     enrollment.progress_percentage = round((attendance_pct + task_pct) / 2.0, 1)
 
+    student_repo = StudentRepository(db)
+    student = await student_repo.get_by_id(student_id)
+    if student:
+        meta = dict(student.metadata_ or {})
+        if data.feedback is not None:
+            meta["feedback"] = data.feedback
+            from datetime import timezone
+            meta["feedback_updated_at"] = datetime.now(timezone.utc).isoformat()
+        student.metadata_ = meta
+
     await db.flush()
 
     # Recalculate scores and predictions using ScoreManager
@@ -147,6 +159,7 @@ async def update_student_progress(
         "completed_tasks_count": enrollment.completed_tasks_count,
         "total_tasks_count": enrollment.total_tasks_count,
         "progress_percentage": enrollment.progress_percentage,
+        "feedback": (student.metadata_ or {}).get("feedback") if student else data.feedback,
         "scoring": res,
     })
 

@@ -4,6 +4,7 @@ import { Card } from '../components/UI';
 import { useNavigate } from 'react-router-dom';
 import { EditStudentProgressModal } from '../components/EditStudentProgressModal';
 import { AddStudentModal } from '../components/AddStudentModal';
+import { MessageSquare, Plus, Trash2, Edit3, Eye } from 'lucide-react';
 
 const UsersList: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
@@ -68,6 +69,7 @@ const UsersList: React.FC = () => {
             completed_tasks_count: updatedInfo.completed_tasks_count,
             total_tasks_count: updatedInfo.total_tasks_count,
             progress_percentage: updatedInfo.progress_percentage,
+            feedback: updatedInfo.feedback,
           };
         }
         return s;
@@ -107,11 +109,11 @@ const UsersList: React.FC = () => {
     <div className="flex flex-col gap-6 animate-fade-in" style={{ paddingBottom: '2rem' }}>
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--primary-color)', marginBottom: '0.25rem' }}>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
             Intern Students Management
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>
-            Real-time track monitoring & direct progress updates for {students.length} interns across tracks.
+            Real-time track monitoring, progress scoring & instructor feedback for {students.length} interns across tracks.
           </p>
         </div>
       </div>
@@ -152,12 +154,12 @@ const UsersList: React.FC = () => {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: 600,
-                  border: 'none',
+                  border: isActive ? '1px solid transparent' : '1px solid var(--border-color)',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  backgroundColor: isActive ? 'var(--secondary-color)' : 'var(--bg-secondary)',
+                  background: isActive ? 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' : 'var(--bg-card)',
                   color: isActive ? '#FFFFFF' : 'var(--text-muted)',
-                  boxShadow: isActive ? '0 4px 12px rgba(0, 212, 170, 0.25)' : 'none',
+                  boxShadow: isActive ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none',
                 }}
               >
                 {track} <span style={{ opacity: 0.8, fontSize: '0.75rem', marginLeft: '0.25rem' }}>({count})</span>
@@ -171,33 +173,33 @@ const UsersList: React.FC = () => {
           <button
             onClick={() => setShowAddModal(true)}
             style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              padding: '0.5rem 1rem',
-              borderRadius: '0.5rem',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
               background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
               color: '#FFFFFF',
               boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
               transition: 'all 0.2s',
             }}
           >
-            <span style={{ fontSize: '1rem' }}>+</span> Add Student
+            <Plus size={16} />
+            <span>Add Student to {selectedTrack}</span>
           </button>
         )}
       </div>
 
-      {/* Student List Table */}
-      <Card>
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+          <table>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                <th style={{ padding: '0.875rem 1rem' }}>Student Name</th>
+              <tr>
+                <th style={{ padding: '0.875rem 1rem' }}>Student Name & Feedback</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Code</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Track</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Attended Lectures</th>
@@ -229,8 +231,31 @@ const UsersList: React.FC = () => {
                       }}
                     >
                       <td style={{ padding: '1rem' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{student.full_name}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{student.full_name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.email}</div>
+                        {student.feedback && (
+                          <div 
+                            style={{ 
+                              marginTop: '0.4rem', 
+                              fontSize: '0.75rem', 
+                              color: 'var(--secondary-color)', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '0.35rem', 
+                              background: 'rgba(99, 102, 241, 0.1)', 
+                              padding: '0.2rem 0.55rem', 
+                              borderRadius: '0.375rem', 
+                              border: '1px solid rgba(99, 102, 241, 0.25)',
+                              maxWidth: '260px'
+                            }}
+                            title={`Feedback: ${student.feedback}`}
+                          >
+                            <MessageSquare size={12} style={{ flexShrink: 0 }} />
+                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {student.feedback}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '1rem', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.85rem' }}>
                         {student.student_code}
@@ -277,21 +302,26 @@ const UsersList: React.FC = () => {
                               fontSize: '0.8rem',
                               fontWeight: 600,
                               borderRadius: '0.375rem',
-                              background: 'linear-gradient(135deg, #0EA5E9 0%, #2563EB 100%)',
+                              background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
                               color: '#FFFFFF',
                               border: 'none',
                               cursor: 'pointer',
-                              boxShadow: '0 2px 6px rgba(14, 165, 233, 0.3)'
+                              boxShadow: '0 2px 6px rgba(99, 102, 241, 0.3)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem'
                             }}
                           >
-                            ✏️ Edit Progress
+                            <Edit3 size={13} />
+                            <span>Edit Progress</span>
                           </button>
                           <button 
                             onClick={() => navigate(`/admin/users/${student.id}`)}
                             className="btn btn-secondary"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                           >
-                            Dashboard
+                            <Eye size={13} />
+                            <span>Dashboard</span>
                           </button>
                           <button
                             onClick={() => handleDeleteStudent(student.id, student.full_name)}
@@ -307,10 +337,13 @@ const UsersList: React.FC = () => {
                               cursor: isBeingDeleted ? 'not-allowed' : 'pointer',
                               transition: 'all 0.2s',
                               opacity: isBeingDeleted ? 0.5 : 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
                             }}
                             title="Remove student"
                           >
-                            {isBeingDeleted ? '⏳' : '🗑️'}
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -340,6 +373,7 @@ const UsersList: React.FC = () => {
           initialTotalLessons={editingStudent.total_lessons_count ?? 10}
           initialCompletedTasks={editingStudent.completed_tasks_count ?? 0}
           initialTotalTasks={editingStudent.total_tasks_count ?? 12}
+          initialFeedback={editingStudent.feedback || ''}
           onSuccess={handleProgressUpdated}
         />
       )}

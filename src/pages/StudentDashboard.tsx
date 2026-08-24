@@ -7,16 +7,12 @@ import {
   BookOpen, 
   Calendar, 
   CheckCircle, 
-  Clock, 
-  TrendingUp,
-  AlertCircle,
   Edit,
-  Save,
-  X
+  MessageSquare
 } from 'lucide-react';
 import { EditStudentProgressModal } from '../components/EditStudentProgressModal';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
 
@@ -26,13 +22,13 @@ const StudentDashboard: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   // Edit form state
   const [attendedLessons, setAttendedLessons] = useState(0);
   const [totalLessons, setTotalLessons] = useState(10);
   const [completedTasks, setCompletedTasks] = useState(0);
   const [totalTasks, setTotalTasks] = useState(12);
+  const [currentFeedback, setCurrentFeedback] = useState('');
 
   const fetchData = async () => {
     try {
@@ -48,15 +44,18 @@ const StudentDashboard: React.FC = () => {
         setCompletedTasks(enc.completed_tasks_count || dashData.assignments?.submitted || 0);
         setTotalTasks(enc.total_tasks_count || dashData.assignments?.total || 12);
       }
+      if (dashData?.overview?.feedback) {
+        setCurrentFeedback(dashData.overview.feedback);
+      }
     } catch (err) {
-      console.error("Failed to fetch dashboard data, using preview fallback", err);
+      console.error("Failed to fetch dashboard data, using fallback", err);
       const mockData = {
         overview: {
-          student_name: "Ahmed Hassan",
-          student_code: "STU-2026-001",
+          student_name: "Student Performance Profile",
+          student_code: "STU-2026",
           current_enrollment: {
             enrollment_id: id || "enc-1",
-            course_title: "Full-Stack Web Development",
+            course_title: "Active Program Track",
             progress: 80.0,
             overall_score: 85.5,
             classification: "good",
@@ -65,6 +64,7 @@ const StudentDashboard: React.FC = () => {
             completed_tasks_count: 10,
             total_tasks_count: 12,
           },
+          feedback: "Demonstrates consistent performance and deep engagement in practical exercises.",
         },
         attendance: { rate: 80.0, present: 8, absent: 2, late: 0, total_lessons: 10 },
         quizzes: { average_score: 88.0, total_quizzes: 5, completed: 5, best_score: 95, worst_score: 80 },
@@ -83,6 +83,7 @@ const StudentDashboard: React.FC = () => {
       setTotalLessons(10);
       setCompletedTasks(10);
       setTotalTasks(12);
+      setCurrentFeedback(mockData.overview.feedback);
     } finally {
       setLoading(false);
     }
@@ -92,31 +93,10 @@ const StudentDashboard: React.FC = () => {
     fetchData();
   }, [id]);
 
-  const handleSaveProgress = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-    setSaving(true);
-    try {
-      await api.put(`/students/${id}/progress`, {
-        attended_lessons_count: Number(attendedLessons),
-        total_lessons_count: Number(totalLessons),
-        completed_tasks_count: Number(completedTasks),
-        total_tasks_count: Number(totalTasks),
-      });
-      setIsEditOpen(false);
-      await fetchData();
-    } catch (err) {
-      console.error("Failed to update student progress", err);
-      alert("Error updating progress");
-    } finally {
-      setSaving(false);
-    }
-  };
+  if (loading) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>Loading student dashboard...</div>;
+  if (!data || !data.overview) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>No student data available.</div>;
 
-  if (loading) return <div className="p-8">Loading dashboard...</div>;
-  if (!data || !data.overview) return <div className="p-8">No data available.</div>;
-
-  const { overview, attendance, quizzes, assignments, progress, scores, study_time, achievements } = data;
+  const { overview, attendance, assignments, scores, achievements } = data;
   
   // Format data for radar chart (AI Score Profile)
   const radarData = [
@@ -136,55 +116,69 @@ const StudentDashboard: React.FC = () => {
       case 'average': return { color: 'var(--warning)', label: 'Average' };
       case 'needs_attention': return { color: 'var(--warning)', label: 'Needs Attention' };
       case 'high_risk': return { color: 'var(--error)', label: 'High Risk' };
-      default: return { color: 'var(--text-muted)', label: 'Pending' };
+      default: return { color: 'var(--text-muted)', label: 'Active' };
     }
   };
 
   const classInfo = overview.current_enrollment ? getClassificationInfo(overview.current_enrollment.classification) : getClassificationInfo('');
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
+    <div className="flex flex-col gap-6 animate-fade-in" style={{ paddingBottom: '2rem' }}>
       <div className="dashboard-header flex flex-wrap justify-between items-center gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--primary-color)', marginBottom: '0.25rem' }}>
+            <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
               {overview.student_name}
             </h1>
             {id && (
               <button
                 onClick={() => setIsEditOpen(true)}
-                className="flex items-center gap-1 text-sm font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50 shadow-sm transition"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.825rem',
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+                }}
               >
-                <Edit size={16} />
-                Edit Progress
+                <Edit size={14} />
+                <span>Edit Progress & Feedback</span>
               </button>
             )}
           </div>
-          <p style={{ color: 'var(--text-muted)' }}>Performance overview for {overview.current_enrollment?.course_title || 'your courses'}.</p>
+          <p style={{ color: 'var(--text-muted)' }}>Performance analytics for {overview.current_enrollment?.course_title || 'Enrolled Course'}.</p>
         </div>
         
         {overview.current_enrollment && (
-          <Card style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: 'var(--primary-color)', color: 'white' }}>
+          <Card style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
             <div>
-              <p style={{ fontSize: '0.75rem', opacity: 0.8 }}>Overall AI Score</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Overall AI Score</p>
               <div className="flex items-end gap-2">
-                <span style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1 }}>
+                <span style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1, color: 'var(--text-main)' }}>
                   {overview.current_enrollment.overall_score || '--'}
                 </span>
-                <span style={{ fontSize: '0.875rem', opacity: 0.8, paddingBottom: '0.25rem' }}>/100</span>
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', paddingBottom: '0.25rem' }}>/100</span>
               </div>
             </div>
-            <div style={{ height: '40px', width: '1px', backgroundColor: 'rgba(255,255,255,0.2)' }}></div>
+            <div style={{ height: '40px', width: '1px', backgroundColor: 'var(--border-color)' }}></div>
             <div>
-              <p style={{ fontSize: '0.75rem', opacity: 0.8 }}>Status</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status</p>
               <span style={{ 
                 display: 'inline-block', 
                 padding: '0.25rem 0.75rem', 
-                borderRadius: '999px', 
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                fontSize: '0.875rem',
+                borderRadius: '9999px', 
+                backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                border: '1px solid rgba(99, 102, 241, 0.25)',
+                fontSize: '0.85rem',
                 fontWeight: 600,
-                color: classInfo.color === 'var(--error)' ? '#ff8a8a' : classInfo.color === 'var(--success)' ? '#8affb1' : 'white'
+                color: classInfo.color === 'var(--error)' ? '#EF4444' : classInfo.color === 'var(--success)' ? '#10B981' : 'var(--secondary-color)'
               }}>
                 {classInfo.label}
               </span>
@@ -193,22 +187,63 @@ const StudentDashboard: React.FC = () => {
         )}
       </div>
 
+      {/* Instructor Feedback Card */}
+      {(overview.feedback || currentFeedback) && (
+        <Card style={{ borderLeft: '4px solid var(--secondary-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ 
+                background: 'rgba(99, 102, 241, 0.12)', 
+                padding: '0.4rem', 
+                borderRadius: '0.5rem',
+                color: 'var(--secondary-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <MessageSquare size={18} />
+              </div>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Instructor Feedback & Notes
+              </h3>
+            </div>
+            {overview.feedback_updated_at && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Updated: {new Date(overview.feedback_updated_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <div style={{ 
+            background: 'var(--bg-surface)', 
+            padding: '1rem 1.25rem', 
+            borderRadius: '0.5rem', 
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-main)',
+            fontSize: '0.925rem',
+            lineHeight: 1.6,
+            whiteSpace: 'pre-wrap'
+          }}>
+            {overview.feedback || currentFeedback}
+          </div>
+        </Card>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
         <StatCard 
           title="Attendance Rate" 
-          value={`${attendance.rate}%`} 
+          value={`${attendance?.rate || 0}%`} 
           icon={<Calendar size={24} />} 
         />
         <StatCard 
           title="Completed Tasks" 
-          value={`${assignments.submitted} / ${assignments.total}`} 
+          value={`${assignments?.submitted || 0} / ${assignments?.total || 12}`} 
           icon={<CheckCircle size={24} />} 
         />
       </div>
 
       <div className="dashboard-grid-2">
         <Card>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--primary-color)', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1.5rem' }}>
             AI Performance Profile
           </h3>
           <div style={{ height: '300px' }}>
@@ -217,23 +252,23 @@ const StudentDashboard: React.FC = () => {
                 <PolarGrid stroke="var(--border-color)" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: 'var(--text-muted)' }} />
-                <Radar name="Student" dataKey="A" stroke="var(--secondary-color)" fill="var(--secondary-color)" fillOpacity={0.5} />
+                <Radar name="Student" dataKey="A" stroke="var(--secondary-color)" fill="var(--secondary-color)" fillOpacity={0.4} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
         <Card>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--primary-color)', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1.5rem' }}>
             Recent Achievements
           </h3>
           <div className="flex flex-col gap-4">
-            {achievements.length > 0 ? (
+            {achievements && achievements.length > 0 ? (
               achievements.map((ach: any, idx: number) => (
                 <div key={idx} className="flex items-center gap-4" style={{ padding: '1rem', backgroundColor: 'var(--bg-surface)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '2rem' }}>{ach.icon}</div>
                   <div>
-                    <h4 style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{ach.title}</h4>
+                    <h4 style={{ fontWeight: 600, color: 'var(--text-main)' }}>{ach.title}</h4>
                     <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{ach.description}</p>
                   </div>
                 </div>
@@ -249,22 +284,22 @@ const StudentDashboard: React.FC = () => {
       </div>
       
       <Card>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--primary-color)', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1.5rem' }}>
           Assignments Progress
         </h3>
         <div className="flex flex-col gap-4">
-          <ProgressBar value={assignments.average_score} label="Average Score" color="var(--primary-color)" />
+          <ProgressBar value={assignments?.average_score || 80} label="Average Score" color="var(--secondary-color)" />
           <div className="flex justify-between" style={{ marginTop: '1rem' }}>
             <div className="text-center">
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary-color)' }}>{assignments.total}</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)' }}>{assignments?.total || 12}</p>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total</p>
             </div>
             <div className="text-center">
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>{assignments.submitted}</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>{assignments?.submitted || 0}</p>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Submitted</p>
             </div>
             <div className="text-center">
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--warning)' }}>{assignments.pending}</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--warning)' }}>{assignments?.pending || 0}</p>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Pending</p>
             </div>
           </div>
@@ -282,7 +317,13 @@ const StudentDashboard: React.FC = () => {
           initialTotalLessons={totalLessons}
           initialCompletedTasks={completedTasks}
           initialTotalTasks={totalTasks}
-          onSuccess={fetchData}
+          initialFeedback={overview?.feedback || currentFeedback || ''}
+          onSuccess={(res) => {
+            if (res?.feedback !== undefined) {
+              setCurrentFeedback(res.feedback);
+            }
+            fetchData();
+          }}
         />
       )}
     </div>

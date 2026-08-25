@@ -4,7 +4,7 @@ import { Card } from '../components/UI';
 import { useNavigate } from 'react-router-dom';
 import { EditStudentProgressModal, type TaskItem } from '../components/EditStudentProgressModal';
 import { AddStudentModal } from '../components/AddStudentModal';
-import { MessageSquare, Plus, Trash2, Edit3, Eye, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, Edit3, Eye, CheckCircle2 } from 'lucide-react';
 
 const UsersList: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
@@ -46,7 +46,6 @@ const UsersList: React.FC = () => {
 
   // Build dynamic track list from courses
   const tracks = ['All', ...courses.map(c => c.title)];
-  // If no courses loaded, fallback to student-derived tracks
   const effectiveTracks = courses.length > 0 
     ? tracks 
     : ['All', ...Array.from(new Set(students.map(s => s.track_name).filter(Boolean)))];
@@ -55,7 +54,6 @@ const UsersList: React.FC = () => {
     ? students 
     : students.filter(s => s.track_name?.toLowerCase().includes(selectedTrack.toLowerCase()) || s.track_name === selectedTrack);
 
-  // Find the course_id for the currently selected track
   const selectedCourse = courses.find(c => c.title === selectedTrack);
 
   const handleProgressUpdated = (updatedInfo: any) => {
@@ -79,14 +77,12 @@ const UsersList: React.FC = () => {
     fetchStudents();
   };
 
-  // Handle student deletion
   const handleDeleteStudent = async (studentId: string, studentName: string) => {
     const confirmed = window.confirm(`Are you sure you want to remove "${studentName}" from the system?\n\nThis action cannot be undone.`);
     if (!confirmed) return;
 
     setDeletingId(studentId);
     const backupStudents = [...students];
-    // Optimistic instant delete
     setStudents(prev => prev.filter(s => s.id !== studentId));
     setDeleteToast({ text: `✅ ${studentName} has been removed successfully.`, type: 'success' });
     setTimeout(() => setDeleteToast(null), 3000);
@@ -119,7 +115,6 @@ const UsersList: React.FC = () => {
         </div>
       </div>
 
-      {/* Delete Toast Notification */}
       {deleteToast && (
         <div
           style={{
@@ -169,7 +164,6 @@ const UsersList: React.FC = () => {
           })}
         </div>
 
-        {/* Add Student Button — only when a specific track is selected */}
         {selectedTrack !== 'All' && selectedCourse && (
           <button
             onClick={() => setShowAddModal(true)}
@@ -204,8 +198,8 @@ const UsersList: React.FC = () => {
                 <th style={{ padding: '0.875rem 1rem' }}>Code</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Track</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Attended Lectures</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Tasks & Deliverables</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Progress</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Tasks Completed</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Overall Progress</th>
                 <th style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -216,11 +210,13 @@ const UsersList: React.FC = () => {
                   const totalL = student.total_lessons_count ?? 10;
                   const tasksList: TaskItem[] = Array.isArray(student.tasks) ? student.tasks : [];
                   const completedT = tasksList.length > 0 ? tasksList.length : (student.completed_tasks_count ?? 0);
-                  const totalT = student.total_tasks_count ?? 12;
                   
                   const attPct = totalL > 0 ? Math.round((attended / totalL) * 100) : 0;
-                  const taskPct = totalT > 0 ? Math.round((completedT / totalT) * 100) : 0;
-                  const overallPct = Math.round((attPct * 0.4) + (taskPct * 0.6));
+                  const avgTaskScore = tasksList.length > 0
+                    ? (tasksList.reduce((sum, t) => sum + ((t.communication_rating + t.quality_rating + t.teamwork_rating) / 3), 0) / tasksList.length).toFixed(1)
+                    : '5.0';
+                  const taskPerfPct = Math.round((Number(avgTaskScore) / 5) * 100);
+                  const overallPct = Math.round((attPct * 0.5) + (taskPerfPct * 0.5));
                   const isBeingDeleted = deletingId === student.id;
 
                   return (
@@ -279,8 +275,8 @@ const UsersList: React.FC = () => {
                         {attended} / {totalL} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({attPct}%)</span>
                       </td>
                       <td style={{ padding: '1rem', color: 'var(--text-main)', fontWeight: 500 }}>
-                        <div>
-                          <span>{completedT} / {totalT}</span> <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({taskPct}%)</span>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                          {completedT} {completedT === 1 ? 'Task' : 'Tasks'}
                         </div>
                         {tasksList.length > 0 && (
                           <div style={{ marginTop: '0.35rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
@@ -299,7 +295,7 @@ const UsersList: React.FC = () => {
                               title={tasksList.map(t => `${t.title} (Comm: ${t.communication_rating}★, Qual: ${t.quality_rating}★, Team: ${t.teamwork_rating}★)`).join('\n')}
                             >
                               <CheckCircle2 size={11} />
-                              <span>{tasksList.length} Tasks Evaluated</span>
+                              <span>{tasksList.length} Evaluated (Avg: {avgTaskScore}★)</span>
                             </span>
                           </div>
                         )}
@@ -397,7 +393,7 @@ const UsersList: React.FC = () => {
           initialAttended={editingStudent.attended_lessons_count ?? 0}
           initialTotalLessons={editingStudent.total_lessons_count ?? 10}
           initialCompletedTasks={editingStudent.completed_tasks_count ?? (Array.isArray(editingStudent.tasks) ? editingStudent.tasks.length : 0)}
-          initialTotalTasks={editingStudent.total_tasks_count ?? 12}
+          initialTotalTasks={editingStudent.total_tasks_count || 10}
           initialFeedback={editingStudent.feedback || ''}
           initialTasks={Array.isArray(editingStudent.tasks) ? editingStudent.tasks : []}
           isIntern={true}

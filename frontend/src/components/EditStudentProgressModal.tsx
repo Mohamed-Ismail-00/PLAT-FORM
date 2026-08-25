@@ -6,7 +6,6 @@ import {
   Plus, 
   Trash2, 
   ExternalLink, 
-  Star, 
   CheckCircle2, 
   Award, 
   Users, 
@@ -18,9 +17,9 @@ export type TaskItem = {
   id?: string;
   title: string;
   submission_link?: string;
-  communication_rating: number;
-  quality_rating: number;
-  teamwork_rating: number;
+  communication_rating: number; // 1 to 5
+  quality_rating: number; // 1 to 5
+  teamwork_rating: number; // 1 to 5
   created_at?: string;
 };
 
@@ -28,9 +27,9 @@ export interface ITaskItem {
   id?: string;
   title: string;
   submission_link?: string;
-  communication_rating: number; // 1 to 5
-  quality_rating: number; // 1 to 5
-  teamwork_rating: number; // 1 to 5
+  communication_rating: number;
+  quality_rating: number;
+  teamwork_rating: number;
   created_at?: string;
 }
 
@@ -42,7 +41,7 @@ interface EditStudentProgressModalProps {
   initialAttended: number;
   initialTotalLessons: number;
   initialCompletedTasks: number;
-  initialTotalTasks: number;
+  initialTotalTasks?: number;
   initialFeedback?: string;
   initialTasks?: TaskItem[];
   isIntern?: boolean;
@@ -65,7 +64,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   initialAttended = 0,
   initialTotalLessons = 10,
   initialCompletedTasks = 0,
-  initialTotalTasks = 12,
+  initialTotalTasks = 10,
   initialFeedback = '',
   initialTasks = [],
   isIntern = true,
@@ -74,7 +73,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   const [attended, setAttended] = useState<number>(initialAttended);
   const [totalLessons, setTotalLessons] = useState<number>(initialTotalLessons || 10);
   const [completedTasksCount, setCompletedTasksCount] = useState<number>(initialCompletedTasks);
-  const [totalTasks, setTotalTasks] = useState<number>(initialTotalTasks || 12);
+  const [totalTasks, setTotalTasks] = useState<number>(initialTotalTasks || 10);
   const [feedback, setFeedback] = useState<string>(initialFeedback || '');
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks || []);
   const [saving, setSaving] = useState<boolean>(false);
@@ -94,7 +93,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
       setAttended(initialAttended ?? 0);
       setTotalLessons(initialTotalLessons || 10);
       setCompletedTasksCount(initialCompletedTasks ?? 0);
-      setTotalTasks(initialTotalTasks || 12);
+      setTotalTasks(initialTotalTasks || 10);
       setFeedback(initialFeedback || '');
       setTasks(Array.isArray(initialTasks) ? [...initialTasks] : []);
       setIsAddingTask(false);
@@ -106,9 +105,15 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
 
   const effectiveCompletedTasks = isIntern ? tasks.length : completedTasksCount;
   const attendancePct = totalLessons > 0 ? Math.round((attended / totalLessons) * 100) : 0;
-  const taskPct = totalTasks > 0 ? Math.round((effectiveCompletedTasks / totalTasks) * 100) : 0;
-  // Weighted overall estimate: 40% attendance + 60% assignments
-  const estimatedOverall = Math.round((attendancePct * 0.4) + (taskPct * 0.6));
+  
+  // Calculate average rating of tasks
+  const avgTaskScore = tasks.length > 0
+    ? (tasks.reduce((sum, t) => sum + ((t.communication_rating + t.quality_rating + t.teamwork_rating) / 3), 0) / tasks.length).toFixed(1)
+    : '5.0';
+
+  // For overall estimate: attendance (50%) + task performance (50%)
+  const taskPerformancePct = Math.round((Number(avgTaskScore) / 5) * 100);
+  const estimatedOverall = Math.round((attendancePct * 0.5) + (taskPerformancePct * 0.5));
 
   const handleApplyTemplate = (templateText: string) => {
     if (!feedback.trim()) {
@@ -156,7 +161,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
       attended_lessons_count: attended,
       total_lessons_count: totalLessons,
       completed_tasks_count: isIntern ? tasks.length : completedTasksCount,
-      total_tasks_count: totalTasks,
+      total_tasks_count: isIntern ? Math.max(tasks.length, 1) : totalTasks,
       feedback: feedback.trim(),
       tasks: isIntern ? tasks : undefined,
     };
@@ -171,7 +176,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
           attended_lessons_count: attended,
           total_lessons_count: totalLessons,
           completed_tasks_count: isIntern ? tasks.length : completedTasksCount,
-          total_tasks_count: totalTasks,
+          total_tasks_count: isIntern ? Math.max(tasks.length, 1) : totalTasks,
           progress_percentage: estimatedOverall,
           feedback: feedback.trim(),
           tasks: isIntern ? tasks : undefined,
@@ -278,7 +283,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
             </div>
           )}
 
-          {/* Real-time Calculation Preview Card */}
+          {/* Real-time Summary Preview Card */}
           <div
             style={{
               background: 'var(--bg-surface)',
@@ -294,23 +299,27 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Attendance</div>
               <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#38BDF8' }}>{attendancePct}%</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{attended} / {totalLessons}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{attended} / {totalLessons} Lectures</div>
             </div>
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tasks</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#A855F7' }}>{taskPct}%</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{effectiveCompletedTasks} / {totalTasks}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tasks Done</div>
+              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#A855F7' }}>
+                {effectiveCompletedTasks} {effectiveCompletedTasks === 1 ? 'Task' : 'Tasks'}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                {isIntern ? `Avg: ${avgTaskScore} / 5.0 ⭐` : `${effectiveCompletedTasks} Completed`}
+              </div>
             </div>
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Overall Estimated</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Estimated Score</div>
               <div style={{ fontSize: '1.125rem', fontWeight: 700, color: estimatedOverall >= 75 ? '#34D399' : estimatedOverall >= 50 ? '#FBBF24' : '#F87171' }}>
                 {estimatedOverall}%
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Calculated Score</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Overall Performance</div>
             </div>
           </div>
 
-          {/* 1. Attendance Section (Unchanged, as requested) */}
+          {/* 1. Attendance Section */}
           <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#38BDF8', marginBottom: '0.75rem' }}>
               📚 Lectures & Attendance
@@ -358,13 +367,13 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
 
           {/* 2. Tasks Management Section */}
           {isIntern ? (
-            /* DETAILED INTERN TASKS MANAGEMENT WITH 3 CRITERIA RATINGS & SUBMISSION LINK */
+            /* DETAILED INTERN TASKS MANAGEMENT WITH 3 CRITERIA RATINGS & SUBMISSION LINK - UNLIMITED */
             <div style={{ background: 'var(--bg-surface)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', fontWeight: 700, color: '#A855F7' }}>
                     <CheckCircle2 size={18} />
-                    <span>Intern Tasks & Deliverables ({tasks.length} Completed / {totalTasks} Total)</span>
+                    <span>Intern Tasks & Deliverables ({tasks.length} Completed)</span>
                   </label>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                     Add submitted tasks, deliverable links, and evaluate across Communication, Quality & Teamwork.
@@ -628,7 +637,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
               ) : (
                 !isAddingTask && (
                   <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    No deliverables logged yet. Click <b>"Add Task"</b> above to record the first task.
+                    No deliverables logged yet. Click <b>"Add Task"</b> above to record tasks.
                   </div>
                 )
               )}
@@ -645,7 +654,6 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                   <input
                     type="number"
                     min="0"
-                    max={totalTasks}
                     value={completedTasksCount}
                     onChange={(e) => setCompletedTasksCount(Math.max(0, parseInt(e.target.value) || 0))}
                     style={{

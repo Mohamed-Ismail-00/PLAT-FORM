@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { StatCard, Card, ProgressBar } from '../components/UI';
+import { StatCard, Card } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 import { 
   BookOpen, 
@@ -10,10 +10,6 @@ import {
   Edit,
   MessageSquare,
   ExternalLink,
-  Award,
-  Users,
-  MessageCircle,
-  CheckCircle2,
   Layers
 } from 'lucide-react';
 import { EditStudentProgressModal, type TaskItem } from '../components/EditStudentProgressModal';
@@ -33,7 +29,7 @@ const StudentDashboard: React.FC = () => {
   const [attendedLessons, setAttendedLessons] = useState(0);
   const [totalLessons, setTotalLessons] = useState(10);
   const [completedTasks, setCompletedTasks] = useState(0);
-  const [totalTasks, setTotalTasks] = useState(12);
+  const [totalTasks, setTotalTasks] = useState(10);
   const [currentFeedback, setCurrentFeedback] = useState('');
   const [studentTasks, setStudentTasks] = useState<TaskItem[]>([]);
 
@@ -49,7 +45,7 @@ const StudentDashboard: React.FC = () => {
         setAttendedLessons(enc.attended_lessons_count || dashData.attendance?.present || 0);
         setTotalLessons(enc.total_lessons_count || dashData.attendance?.total_lessons || 10);
         setCompletedTasks(enc.completed_tasks_count || dashData.assignments?.submitted || 0);
-        setTotalTasks(enc.total_tasks_count || dashData.assignments?.total || 12);
+        setTotalTasks(enc.total_tasks_count || 10);
       }
       if (dashData?.overview?.feedback) {
         setCurrentFeedback(dashData.overview.feedback);
@@ -71,29 +67,29 @@ const StudentDashboard: React.FC = () => {
             classification: "good",
             attended_lessons_count: 8,
             total_lessons_count: 10,
-            completed_tasks_count: 10,
-            total_tasks_count: 12,
+            completed_tasks_count: 5,
+            total_tasks_count: 10,
           },
           feedback: "Demonstrates consistent performance and deep engagement in practical exercises.",
           tasks: [],
         },
         attendance: { rate: 80.0, present: 8, absent: 2, late: 0, total_lessons: 10 },
         quizzes: { average_score: 88.0, total_quizzes: 5, completed: 5, best_score: 95, worst_score: 80 },
-        assignments: { average_score: 83.3, total: 12, submitted: 10, graded: 10, pending: 2 },
+        assignments: { average_score: 83.3, total: 10, submitted: 5, graded: 5, pending: 0 },
         projects: [],
         progress: { lessons_completed: 8, total_lessons: 10, percentage: 80.0, videos_completed: 8, total_videos: 10 },
         scores: { engagement: 85, consistency: 80, activity: 90, attendance: 80, quiz: 88, assignment: 83 },
         study_time: { total_hours_this_week: 14.5, total_hours_this_month: 52.0, avg_daily_minutes: 120 },
         achievements: [
           { icon: "🏆", title: "Top Performer", description: "Consistently scored above 80%" },
-          { icon: "🔥", title: "Active Streak", description: "Completed 10 tasks on time" }
+          { icon: "🔥", title: "Active Streak", description: "Completed tasks on time" }
         ],
       };
       setData(mockData);
       setAttendedLessons(8);
       setTotalLessons(10);
-      setCompletedTasks(10);
-      setTotalTasks(12);
+      setCompletedTasks(5);
+      setTotalTasks(10);
       setCurrentFeedback(mockData.overview.feedback);
       setStudentTasks([]);
     } finally {
@@ -108,9 +104,10 @@ const StudentDashboard: React.FC = () => {
   if (loading) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>Loading student dashboard...</div>;
   if (!data || !data.overview) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>No student data available.</div>;
 
-  const { overview, attendance, assignments, scores, achievements } = data;
+  const { overview, attendance, scores, achievements } = data;
   const tasksToDisplay: TaskItem[] = studentTasks.length > 0 ? studentTasks : (overview.tasks || []);
-  
+  const completedTasksCount = tasksToDisplay.length > 0 ? tasksToDisplay.length : (overview.current_enrollment?.completed_tasks_count || 0);
+
   // Format data for radar chart (AI Score Profile)
   const radarData = [
     { subject: 'Engagement', A: scores.engagement || 0, fullMark: 100 },
@@ -121,7 +118,6 @@ const StudentDashboard: React.FC = () => {
     { subject: 'Assignments', A: scores.assignment || 0, fullMark: 100 },
   ];
 
-  // Map classification to color and label
   const getClassificationInfo = (classification: string) => {
     switch (classification) {
       case 'excellent': return { color: 'var(--success)', label: 'Excellent' };
@@ -166,7 +162,7 @@ const StudentDashboard: React.FC = () => {
               </button>
             )}
           </div>
-          <p style={{ color: 'var(--text-muted)' }}>Performance analytics for {overview.current_enrollment?.course_title || 'Enrolled Course'}.</p>
+          <p style={{ color: 'var(--text-muted)' }}>Performance analytics for {overview.current_enrollment?.course_title || 'Enrolled Program'}.</p>
         </div>
         
         {overview.current_enrollment && (
@@ -354,7 +350,7 @@ const StudentDashboard: React.FC = () => {
         />
         <StatCard 
           title="Completed Tasks" 
-          value={`${tasksToDisplay.length > 0 ? tasksToDisplay.length : (assignments?.submitted || 0)} / ${assignments?.total || 12}`} 
+          value={`${completedTasksCount} ${completedTasksCount === 1 ? 'Task' : 'Tasks'}`} 
           icon={<CheckCircle size={24} />} 
         />
       </div>
@@ -400,33 +396,6 @@ const StudentDashboard: React.FC = () => {
           </div>
         </Card>
       </div>
-      
-      <Card>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1.5rem' }}>
-          Assignments Progress
-        </h3>
-        <div className="flex flex-col gap-4">
-          <ProgressBar value={assignments?.average_score || 80} label="Average Score" color="var(--secondary-color)" />
-          <div className="flex justify-between" style={{ marginTop: '1rem' }}>
-            <div className="text-center">
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)' }}>{assignments?.total || 12}</p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total</p>
-            </div>
-            <div className="text-center">
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>
-                {tasksToDisplay.length > 0 ? tasksToDisplay.length : (assignments?.submitted || 0)}
-              </p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Submitted</p>
-            </div>
-            <div className="text-center">
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--warning)' }}>
-                {Math.max(0, (assignments?.total || 12) - (tasksToDisplay.length > 0 ? tasksToDisplay.length : (assignments?.submitted || 0)))}
-              </p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Pending</p>
-            </div>
-          </div>
-        </div>
-      </Card>
 
       {/* Edit Progress Modal */}
       {isEditOpen && id && (

@@ -10,9 +10,12 @@ import {
   Edit,
   MessageSquare,
   ExternalLink,
-  Layers
+  Layers,
+  FileDown,
+  Download
 } from 'lucide-react';
 import { EditStudentProgressModal, type TaskItem } from '../components/EditStudentProgressModal';
+import { generateStudentPDFReport } from '../services/pdfReportGenerator';
 import { 
   ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
@@ -24,6 +27,7 @@ const StudentDashboard: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // Edit form state
   const [attendedLessons, setAttendedLessons] = useState(0);
@@ -131,11 +135,35 @@ const StudentDashboard: React.FC = () => {
 
   const classInfo = overview.current_enrollment ? getClassificationInfo(overview.current_enrollment.classification) : getClassificationInfo('');
 
+  const handleDownloadPDF = () => {
+    setDownloadingPdf(true);
+    try {
+      generateStudentPDFReport({
+        studentName: overview.student_name,
+        studentCode: overview.student_code,
+        courseTitle: overview.current_enrollment?.course_title || 'Internship Program Track',
+        overallScore: overview.current_enrollment?.overall_score || 100,
+        classification: classInfo.label,
+        attendedDays: attendedLessons,
+        totalDays: totalLessons,
+        tasks: tasksToDisplay,
+        feedback: overview.feedback || currentFeedback,
+        feedbackUpdatedAt: overview.feedback_updated_at,
+        attendanceRate: attendance?.rate,
+      });
+    } catch (err) {
+      console.error('Failed to generate PDF report:', err);
+      alert('Error generating PDF report. Please try again.');
+    } finally {
+      setTimeout(() => setDownloadingPdf(false), 500);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-fade-in" style={{ paddingBottom: '2rem' }}>
       <div className="dashboard-header flex flex-wrap justify-between items-center gap-4">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
               {overview.student_name}
             </h1>
@@ -161,6 +189,32 @@ const StudentDashboard: React.FC = () => {
                 <span>Edit Progress & Feedback</span>
               </button>
             )}
+
+            {/* Official PDF Report Download Button */}
+            <button
+              onClick={handleDownloadPDF}
+              disabled={downloadingPdf}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.45rem 1rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.825rem',
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                cursor: downloadingPdf ? 'not-allowed' : 'pointer',
+                opacity: downloadingPdf ? 0.7 : 1,
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                transition: 'all 0.2s ease',
+              }}
+              title="Download Official Executive Evaluation Report (PDF)"
+            >
+              <FileDown size={15} />
+              <span>{downloadingPdf ? 'Generating PDF...' : 'Download Official Report (PDF)'}</span>
+            </button>
           </div>
           <p style={{ color: 'var(--text-muted)' }}>Performance analytics for {overview.current_enrollment?.course_title || 'Enrolled Program'}.</p>
         </div>
@@ -316,23 +370,23 @@ const StudentDashboard: React.FC = () => {
                   {/* Criteria Rating Cards */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem', marginTop: '0.25rem' }}>
                     <div style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '0.375rem', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>🗣️ Comm</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38BDF8' }}>{task.communication_rating}★</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Comm</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38BDF8' }}>{task.communication_rating} / 5.0</div>
                     </div>
                     <div style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '0.375rem', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>🎯 Quality</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#A855F7' }}>{task.quality_rating}★</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Quality</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#A855F7' }}>{task.quality_rating} / 5.0</div>
                     </div>
                     <div style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '0.375rem', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>🤝 Team</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10B981' }}>{task.teamwork_rating}★</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Team</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10B981' }}>{task.teamwork_rating} / 5.0</div>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.25rem', borderTop: '1px solid var(--border-color)' }}>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Overall Task Score:</span>
                     <span style={{ fontSize: '0.825rem', fontWeight: 700, color: Number(avgScore) >= 4 ? '#10B981' : '#F59E0B' }}>
-                      {avgScore} / 5.0 ⭐
+                      {avgScore} / 5.0
                     </span>
                   </div>
                 </div>

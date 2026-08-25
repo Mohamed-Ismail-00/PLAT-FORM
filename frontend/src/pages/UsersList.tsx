@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { Card } from '../components/UI';
 import { useNavigate } from 'react-router-dom';
-import { EditStudentProgressModal } from '../components/EditStudentProgressModal';
+import { EditStudentProgressModal, type TaskItem } from '../components/EditStudentProgressModal';
 import { AddStudentModal } from '../components/AddStudentModal';
-import { MessageSquare, Plus, Trash2, Edit3, Eye } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, Edit3, Eye, ExternalLink, CheckCircle2 } from 'lucide-react';
 
 const UsersList: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
@@ -70,6 +70,7 @@ const UsersList: React.FC = () => {
             total_tasks_count: updatedInfo.total_tasks_count,
             progress_percentage: updatedInfo.progress_percentage,
             feedback: updatedInfo.feedback,
+            tasks: updatedInfo.tasks || s.tasks || [],
           };
         }
         return s;
@@ -113,7 +114,7 @@ const UsersList: React.FC = () => {
             Intern Students Management
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>
-            Real-time track monitoring, progress scoring & instructor feedback for {students.length} interns across tracks.
+            Real-time track monitoring, task deliverables evaluation & instructor feedback for {students.length} interns across tracks.
           </p>
         </div>
       </div>
@@ -203,7 +204,7 @@ const UsersList: React.FC = () => {
                 <th style={{ padding: '0.875rem 1rem' }}>Code</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Track</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Attended Lectures</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Tasks Done</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Tasks & Deliverables</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Progress</th>
                 <th style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>Actions</th>
               </tr>
@@ -213,7 +214,8 @@ const UsersList: React.FC = () => {
                 filteredStudents.map((student) => {
                   const attended = student.attended_lessons_count ?? 0;
                   const totalL = student.total_lessons_count ?? 10;
-                  const completedT = student.completed_tasks_count ?? 0;
+                  const tasksList: TaskItem[] = Array.isArray(student.tasks) ? student.tasks : [];
+                  const completedT = tasksList.length > 0 ? tasksList.length : (student.completed_tasks_count ?? 0);
                   const totalT = student.total_tasks_count ?? 12;
                   
                   const attPct = totalL > 0 ? Math.round((attended / totalL) * 100) : 0;
@@ -277,7 +279,30 @@ const UsersList: React.FC = () => {
                         {attended} / {totalL} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({attPct}%)</span>
                       </td>
                       <td style={{ padding: '1rem', color: 'var(--text-main)', fontWeight: 500 }}>
-                        {completedT} / {totalT} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({taskPct}%)</span>
+                        <div>
+                          <span>{completedT} / {totalT}</span> <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({taskPct}%)</span>
+                        </div>
+                        {tasksList.length > 0 && (
+                          <div style={{ marginTop: '0.35rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                            <span 
+                              style={{ 
+                                fontSize: '0.7rem', 
+                                background: 'rgba(168, 85, 247, 0.12)', 
+                                color: '#A855F7', 
+                                padding: '0.15rem 0.45rem', 
+                                borderRadius: '0.25rem',
+                                border: '1px solid rgba(168, 85, 247, 0.25)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                              }}
+                              title={tasksList.map(t => `${t.title} (Comm: ${t.communication_rating}★, Qual: ${t.quality_rating}★, Team: ${t.teamwork_rating}★)`).join('\n')}
+                            >
+                              <CheckCircle2 size={11} />
+                              <span>{tasksList.length} Tasks Evaluated</span>
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -371,9 +396,11 @@ const UsersList: React.FC = () => {
           studentName={editingStudent.full_name}
           initialAttended={editingStudent.attended_lessons_count ?? 0}
           initialTotalLessons={editingStudent.total_lessons_count ?? 10}
-          initialCompletedTasks={editingStudent.completed_tasks_count ?? 0}
+          initialCompletedTasks={editingStudent.completed_tasks_count ?? (Array.isArray(editingStudent.tasks) ? editingStudent.tasks.length : 0)}
           initialTotalTasks={editingStudent.total_tasks_count ?? 12}
           initialFeedback={editingStudent.feedback || ''}
+          initialTasks={Array.isArray(editingStudent.tasks) ? editingStudent.tasks : []}
+          isIntern={true}
           onSuccess={handleProgressUpdated}
         />
       )}

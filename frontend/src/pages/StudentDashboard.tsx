@@ -8,9 +8,15 @@ import {
   Calendar, 
   CheckCircle, 
   Edit,
-  MessageSquare
+  MessageSquare,
+  ExternalLink,
+  Award,
+  Users,
+  MessageCircle,
+  CheckCircle2,
+  Layers
 } from 'lucide-react';
-import { EditStudentProgressModal } from '../components/EditStudentProgressModal';
+import { EditStudentProgressModal, type TaskItem } from '../components/EditStudentProgressModal';
 import { 
   ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
@@ -29,6 +35,7 @@ const StudentDashboard: React.FC = () => {
   const [completedTasks, setCompletedTasks] = useState(0);
   const [totalTasks, setTotalTasks] = useState(12);
   const [currentFeedback, setCurrentFeedback] = useState('');
+  const [studentTasks, setStudentTasks] = useState<TaskItem[]>([]);
 
   const fetchData = async () => {
     try {
@@ -46,6 +53,9 @@ const StudentDashboard: React.FC = () => {
       }
       if (dashData?.overview?.feedback) {
         setCurrentFeedback(dashData.overview.feedback);
+      }
+      if (Array.isArray(dashData?.overview?.tasks)) {
+        setStudentTasks(dashData.overview.tasks);
       }
     } catch (err) {
       console.error("Failed to fetch dashboard data, using fallback", err);
@@ -65,6 +75,7 @@ const StudentDashboard: React.FC = () => {
             total_tasks_count: 12,
           },
           feedback: "Demonstrates consistent performance and deep engagement in practical exercises.",
+          tasks: [],
         },
         attendance: { rate: 80.0, present: 8, absent: 2, late: 0, total_lessons: 10 },
         quizzes: { average_score: 88.0, total_quizzes: 5, completed: 5, best_score: 95, worst_score: 80 },
@@ -84,6 +95,7 @@ const StudentDashboard: React.FC = () => {
       setCompletedTasks(10);
       setTotalTasks(12);
       setCurrentFeedback(mockData.overview.feedback);
+      setStudentTasks([]);
     } finally {
       setLoading(false);
     }
@@ -97,6 +109,7 @@ const StudentDashboard: React.FC = () => {
   if (!data || !data.overview) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>No student data available.</div>;
 
   const { overview, attendance, assignments, scores, achievements } = data;
+  const tasksToDisplay: TaskItem[] = studentTasks.length > 0 ? studentTasks : (overview.tasks || []);
   
   // Format data for radar chart (AI Score Profile)
   const radarData = [
@@ -228,6 +241,111 @@ const StudentDashboard: React.FC = () => {
         </Card>
       )}
 
+      {/* Intern Deliverables & Task Criteria Evaluation Breakdown */}
+      {tasksToDisplay.length > 0 && (
+        <Card style={{ borderLeft: '4px solid #A855F7' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ 
+                background: 'rgba(168, 85, 247, 0.12)', 
+                padding: '0.4rem', 
+                borderRadius: '0.5rem',
+                color: '#A855F7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Layers size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                  Intern Deliverables & Evaluation Breakdown
+                </h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {tasksToDisplay.length} tasks evaluated across Communication, Quality & Teamwork.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '0.85rem' }}>
+            {tasksToDisplay.map((task, idx) => {
+              const avgScore = ((task.communication_rating + task.quality_rating + task.teamwork_rating) / 3).toFixed(1);
+              return (
+                <div
+                  key={task.id || idx}
+                  style={{
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '0.625rem',
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.6rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#A855F7' }}>
+                        Task #{idx + 1}
+                      </div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                        {task.title}
+                      </div>
+                    </div>
+                    {task.submission_link && (
+                      <a
+                        href={task.submission_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--secondary-color)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          textDecoration: 'none',
+                          background: 'rgba(99, 102, 241, 0.1)',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '1px solid rgba(99, 102, 241, 0.25)',
+                        }}
+                      >
+                        <span>Deliverable Link</span>
+                        <ExternalLink size={11} />
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Criteria Rating Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem', marginTop: '0.25rem' }}>
+                    <div style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '0.375rem', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>🗣️ Comm</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38BDF8' }}>{task.communication_rating}★</div>
+                    </div>
+                    <div style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '0.375rem', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>🎯 Quality</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#A855F7' }}>{task.quality_rating}★</div>
+                    </div>
+                    <div style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '0.375rem', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>🤝 Team</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10B981' }}>{task.teamwork_rating}★</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.25rem', borderTop: '1px solid var(--border-color)' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Overall Task Score:</span>
+                    <span style={{ fontSize: '0.825rem', fontWeight: 700, color: Number(avgScore) >= 4 ? '#10B981' : '#F59E0B' }}>
+                      {avgScore} / 5.0 ⭐
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
         <StatCard 
           title="Attendance Rate" 
@@ -236,7 +354,7 @@ const StudentDashboard: React.FC = () => {
         />
         <StatCard 
           title="Completed Tasks" 
-          value={`${assignments?.submitted || 0} / ${assignments?.total || 12}`} 
+          value={`${tasksToDisplay.length > 0 ? tasksToDisplay.length : (assignments?.submitted || 0)} / ${assignments?.total || 12}`} 
           icon={<CheckCircle size={24} />} 
         />
       </div>
@@ -295,11 +413,15 @@ const StudentDashboard: React.FC = () => {
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total</p>
             </div>
             <div className="text-center">
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>{assignments?.submitted || 0}</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>
+                {tasksToDisplay.length > 0 ? tasksToDisplay.length : (assignments?.submitted || 0)}
+              </p>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Submitted</p>
             </div>
             <div className="text-center">
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--warning)' }}>{assignments?.pending || 0}</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--warning)' }}>
+                {Math.max(0, (assignments?.total || 12) - (tasksToDisplay.length > 0 ? tasksToDisplay.length : (assignments?.submitted || 0)))}
+              </p>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Pending</p>
             </div>
           </div>
@@ -318,9 +440,14 @@ const StudentDashboard: React.FC = () => {
           initialCompletedTasks={completedTasks}
           initialTotalTasks={totalTasks}
           initialFeedback={overview?.feedback || currentFeedback || ''}
+          initialTasks={tasksToDisplay}
+          isIntern={true}
           onSuccess={(res) => {
             if (res?.feedback !== undefined) {
               setCurrentFeedback(res.feedback);
+            }
+            if (res?.tasks !== undefined) {
+              setStudentTasks(res.tasks);
             }
             fetchData();
           }}

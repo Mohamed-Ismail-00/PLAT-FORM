@@ -147,10 +147,14 @@ class DashboardService:
             att_data["rate"], quiz_avg, active_days, enrollment.progress_percentage
         )
 
+        meta = student.metadata_ if (student and hasattr(student, "metadata_") and student.metadata_) else {}
         return {
             "overview": {
                 "student_name": student.user.full_name if student.user else "",
                 "student_code": student.student_code,
+                "feedback": meta.get("feedback"),
+                "feedback_updated_at": meta.get("feedback_updated_at"),
+                "tasks": meta.get("tasks", []),
                 "current_enrollment": {
                     "enrollment_id": str(enrollment.id),
                     "course_title": enrollment.course.title if enrollment.course else "",

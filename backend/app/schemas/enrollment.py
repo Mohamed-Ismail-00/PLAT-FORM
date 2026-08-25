@@ -19,12 +19,23 @@ class EnrollmentUpdate(BaseModel):
     progress_percentage: Optional[float] = Field(None, ge=0, le=100)
 
 
+class TaskItem(BaseModel):
+    id: Optional[str] = None
+    title: str
+    submission_link: Optional[str] = None
+    communication_rating: float = Field(5.0, ge=1, le=5)
+    quality_rating: float = Field(5.0, ge=1, le=5)
+    teamwork_rating: float = Field(5.0, ge=1, le=5)
+    created_at: Optional[str] = None
+
+
 class StudentProgressUpdate(BaseModel):
     attended_lessons_count: int = Field(..., ge=0)
     total_lessons_count: int = Field(10, ge=1)
     completed_tasks_count: int = Field(..., ge=0)
     total_tasks_count: int = Field(12, ge=1)
     feedback: Optional[str] = None
+    tasks: Optional[list[TaskItem]] = None
 
 
 class EnrollmentResponse(BaseModel):

@@ -73,6 +73,7 @@ async def list_students(
             "total_tasks_count": enrollment.total_tasks_count if enrollment else 12,
             "progress_percentage": enrollment.progress_percentage if enrollment else 0,
             "feedback": feedback,
+            "tasks": (s.metadata_ or {}).get("tasks", []) if hasattr(s, "metadata_") and s.metadata_ else [],
             "created_at": s.created_at.isoformat() if s.created_at else None,
         })
 
@@ -139,6 +140,12 @@ async def update_student_progress(
         if data.feedback is not None:
             meta["feedback"] = data.feedback
             meta["feedback_updated_at"] = datetime.now(timezone.utc).isoformat()
+        if data.tasks is not None:
+            meta["tasks"] = [t.model_dump() if hasattr(t, "model_dump") else t.dict() for t in data.tasks]
+            enrollment.completed_tasks_count = len(data.tasks)
+            # Recompute task percentage
+            task_pct = (enrollment.completed_tasks_count / enrollment.total_tasks_count * 100) if enrollment.total_tasks_count > 0 else 0
+            enrollment.progress_percentage = round((attendance_pct + task_pct) / 2.0, 1)
         student.metadata_ = meta
 
     await db.flush()
@@ -162,6 +169,7 @@ async def update_student_progress(
         "total_tasks_count": enrollment.total_tasks_count,
         "progress_percentage": enrollment.progress_percentage,
         "feedback": (student.metadata_ or {}).get("feedback") if student else data.feedback,
+        "tasks": (student.metadata_ or {}).get("tasks", []) if student else (data.tasks or []),
         "scoring": res,
     })
 

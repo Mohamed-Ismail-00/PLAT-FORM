@@ -368,6 +368,7 @@ const StudentsSection: React.FC = () => {
           initialCompletedTasks={editingStudent.completed_tasks_count ?? 0}
           initialTotalTasks={editingStudent.total_tasks_count ?? 12}
           initialFeedback={editingStudent.feedback || ''}
+          isIntern={false}
           onSuccess={handleProgressUpdated}
         />
       )}

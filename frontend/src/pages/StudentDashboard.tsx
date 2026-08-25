@@ -196,7 +196,7 @@ const StudentDashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Instructor Feedback Card */}
+      {/* Intern Lead Feedback Card */}
       {(overview.feedback || currentFeedback) && (
         <Card style={{ borderLeft: '4px solid var(--secondary-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
@@ -213,7 +213,7 @@ const StudentDashboard: React.FC = () => {
                 <MessageSquare size={18} />
               </div>
               <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                Instructor Feedback & Notes
+                Intern Lead Feedback & Notes
               </h3>
             </div>
             {overview.feedback_updated_at && (

@@ -299,7 +299,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Attendance</div>
               <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#38BDF8' }}>{attendancePct}%</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{attended} / {totalLessons} Lectures</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{attended} / {totalLessons} Days Attended</div>
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tasks Done</div>
@@ -322,11 +322,11 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
           {/* 1. Attendance Section */}
           <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#38BDF8', marginBottom: '0.75rem' }}>
-              📚 Lectures & Attendance
+              📅 Days Attended
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Attended Lectures</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Days Attended</label>
                 <input
                   type="number"
                   min="0"
@@ -345,7 +345,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Total Lectures</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Total Days</label>
                 <input
                   type="number"
                   min="1"
@@ -694,7 +694,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--secondary-color)' }}>
                 <MessageSquare size={16} />
-                <span>Instructor Feedback & Notes</span>
+                <span>Intern Lead Feedback & Notes</span>
               </label>
               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                 {feedback.length} / 500 characters

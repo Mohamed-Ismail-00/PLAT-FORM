@@ -110,7 +110,7 @@ const UsersList: React.FC = () => {
             Intern Students Management
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>
-            Real-time track monitoring, task deliverables evaluation & instructor feedback for {students.length} interns across tracks.
+            Real-time track monitoring, task deliverables evaluation & Intern Lead feedback for {students.length} interns across tracks.
           </p>
         </div>
       </div>
@@ -197,7 +197,7 @@ const UsersList: React.FC = () => {
                 <th style={{ padding: '0.875rem 1rem' }}>Student Name & Feedback</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Code</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Track</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Attended Lectures</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Days Attended</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Tasks Completed</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Overall Progress</th>
                 <th style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>Actions</th>
@@ -246,7 +246,7 @@ const UsersList: React.FC = () => {
                               border: '1px solid rgba(99, 102, 241, 0.25)',
                               maxWidth: '260px'
                             }}
-                            title={`Feedback: ${student.feedback}`}
+                            title={`Intern Lead Feedback: ${student.feedback}`}
                           >
                             <MessageSquare size={12} style={{ flexShrink: 0 }} />
                             <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>

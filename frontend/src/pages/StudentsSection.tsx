@@ -109,7 +109,7 @@ const StudentsSection: React.FC = () => {
             Course Students Directory
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>
-            Real-time track monitoring, progress scoring & instructor feedback for {students.length} Innovera course students.
+            Real-time track monitoring, progress scoring & Intern Lead feedback for {students.length} Innovera course students.
           </p>
         </div>
       </div>
@@ -196,7 +196,7 @@ const StudentsSection: React.FC = () => {
                 <th style={{ padding: '0.875rem 1rem' }}>Student Name & Feedback</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Code</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Course</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Attended Lectures</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Days Attended</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Tasks Done</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Progress</th>
                 <th style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>Actions</th>
@@ -242,7 +242,7 @@ const StudentsSection: React.FC = () => {
                               border: '1px solid rgba(168, 85, 247, 0.25)',
                               maxWidth: '260px'
                             }}
-                            title={`Feedback: ${student.feedback}`}
+                            title={`Intern Lead Feedback: ${student.feedback}`}
                           >
                             <MessageSquare size={12} style={{ flexShrink: 0 }} />
                             <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>

@@ -91,11 +91,25 @@ class StudentRepository(BaseRepository[Student]):
         return list(result.scalars().all())
 
     async def generate_student_code(self) -> str:
-        """Generate the next student code."""
+        """Generate the next student code (robust, avoids duplicates)."""
         from datetime import datetime
+        from sqlalchemy import text
         year = datetime.now().year
-        count = await self.count()
-        return f"STU-{year}-{(count + 1):04d}"
+        prefix = f"STU-{year}-"
+        # Find the highest existing code number for this year
+        result = await self.db.execute(
+            text("SELECT student_code FROM students WHERE student_code LIKE :prefix ORDER BY student_code DESC LIMIT 1"),
+            {"prefix": f"{prefix}%"}
+        )
+        row = result.first()
+        if row and row[0]:
+            try:
+                last_num = int(row[0].replace(prefix, ""))
+            except (ValueError, IndexError):
+                last_num = 0
+        else:
+            last_num = 0
+        return f"{prefix}{(last_num + 1):04d}"
 
 
 class InstructorRepository(BaseRepository[Instructor]):

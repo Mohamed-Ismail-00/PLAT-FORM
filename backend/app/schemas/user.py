@@ -73,6 +73,8 @@ class QuickAddStudentRequest(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     course_id: UUID
+    personal_email: Optional[str] = Field(None, max_length=255)
+    phone: Optional[str] = Field(None, max_length=20)
 
     @field_validator("first_name", "last_name")
     @classmethod

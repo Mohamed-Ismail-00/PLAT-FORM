@@ -205,12 +205,13 @@ async def quick_add_student(
         existing = await user_repo.get_by_email(email)
         counter += 1
 
-    # Create User
+    # Create User with optional phone
     user = User(
         email=email,
         password_hash=hash_password("Innovera@2026"),
         first_name=data.first_name,
         last_name=data.last_name,
+        phone=data.phone if data.phone else None,
         status="active",
     )
     db.add(user)
@@ -219,12 +220,16 @@ async def quick_add_student(
     # Assign student role
     await user_repo.assign_role(user.id, RoleName.STUDENT.value)
 
-    # Create Student profile
+    # Create Student profile with optional personal_email in metadata
     student_repo = StudentRepository(db)
     student_code = await student_repo.generate_student_code()
+    student_metadata = {}
+    if data.personal_email:
+        student_metadata["personal_email"] = data.personal_email
     student = Student(
         user_id=user.id,
         student_code=student_code,
+        metadata_=student_metadata if student_metadata else {},
     )
     db.add(student)
     await db.flush()
@@ -244,6 +249,8 @@ async def quick_add_student(
         "student_code": student_code,
         "full_name": f"{data.first_name} {data.last_name}",
         "email": email,
+        "personal_email": data.personal_email,
+        "phone": data.phone,
         "track_name": course.title,
         "message": "Student added successfully",
     })

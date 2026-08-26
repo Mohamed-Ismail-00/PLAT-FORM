@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../services/api';
+import { Mail, Phone, User, GraduationCap } from 'lucide-react';
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
 }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [personalEmail, setPersonalEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -27,6 +30,8 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     if (isOpen) {
       setFirstName('');
       setLastName('');
+      setPersonalEmail('');
+      setPhoneNumber('');
       setToastMessage(null);
     }
   }, [isOpen]);
@@ -35,23 +40,38 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
 
   const isValid = firstName.trim().length >= 2 && lastName.trim().length >= 2;
 
+  // Simple email validation
+  const isEmailValid = !personalEmail || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalEmail);
+
+  // Phone validation (optional, allow digits, spaces, dashes, plus)
+  const isPhoneValid = !phoneNumber || /^[+\d\s\-()]{7,20}$/.test(phoneNumber);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
+    if (!isEmailValid || !isPhoneValid) return;
 
     setSaving(true);
     setToastMessage(null);
 
     try {
-      const res = await api.post('/students/quick-add', {
+      const payload: any = {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         course_id: courseId,
-      });
+      };
+      if (personalEmail.trim()) {
+        payload.personal_email = personalEmail.trim();
+      }
+      if (phoneNumber.trim()) {
+        payload.phone = phoneNumber.trim();
+      }
+
+      const res = await api.post('/students/quick-add', payload);
 
       const data = res.data?.data;
       setToastMessage({
-        text: `✅ ${data?.full_name || 'Student'} added to ${trackName} successfully!`,
+        text: `${data?.full_name || 'Student'} added to ${trackName} successfully!`,
         type: 'success',
       });
 
@@ -68,6 +88,31 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     } finally {
       setSaving(false);
     }
+  };
+
+  // Common input styles
+  const inputStyle = (hasError: boolean = false): React.CSSProperties => ({
+    width: '100%',
+    padding: '0.625rem 0.875rem 0.625rem 2.5rem',
+    borderRadius: '0.5rem',
+    background: '#0F172A',
+    border: `1px solid ${hasError ? '#EF4444' : 'rgba(255, 255, 255, 0.1)'}`,
+    color: '#FFF',
+    outline: 'none',
+    fontSize: '0.875rem',
+    transition: 'border-color 0.2s',
+  });
+
+  const iconWrapperStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: '0.75rem',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#64748B',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
   };
 
   return createPortal(
@@ -92,7 +137,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
         className="animate-fade-in"
         style={{
           width: '100%',
-          maxWidth: '480px',
+          maxWidth: '520px',
           backgroundColor: '#1E293B',
           borderRadius: '1rem',
           border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -104,16 +149,24 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
         {/* Modal Header */}
         <div
           style={{
-            padding: '1.25rem 1.5rem',
-            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '1.25rem 1.5rem',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.08) 100%)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
           }}
         >
           <div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10B981', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <span
+              style={{
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: '#A78BFA',
+              }}
+            >
               ADD NEW STUDENT
             </span>
             <h2 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
@@ -180,11 +233,10 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1rem',
                 flexShrink: 0,
               }}
             >
-              🎓
+              <GraduationCap size={18} color="#FFF" />
             </div>
             <div>
               <div style={{ fontSize: '0.7rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enrolling to Track</div>
@@ -198,24 +250,20 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '0.375rem' }}>
                 First Name <span style={{ color: '#EF4444' }}>*</span>
               </label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="e.g. Ahmed"
-                autoFocus
-                style={{
-                  width: '100%',
-                  padding: '0.625rem 0.875rem',
-                  borderRadius: '0.5rem',
-                  background: '#0F172A',
-                  border: `1px solid ${firstName && firstName.trim().length < 2 ? '#EF4444' : 'rgba(255, 255, 255, 0.1)'}`,
-                  color: '#FFF',
-                  outline: 'none',
-                  fontSize: '0.875rem',
-                  transition: 'border-color 0.2s',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <div style={iconWrapperStyle}>
+                  <User size={15} />
+                </div>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="e.g. Ahmed"
+                  autoComplete="off"
+                  autoFocus
+                  style={inputStyle(!!firstName && firstName.trim().length < 2)}
+                />
+              </div>
               {firstName && firstName.trim().length < 2 && (
                 <span style={{ fontSize: '0.7rem', color: '#F87171', marginTop: '0.25rem', display: 'block' }}>
                   Minimum 2 characters
@@ -226,23 +274,19 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '0.375rem' }}>
                 Last Name <span style={{ color: '#EF4444' }}>*</span>
               </label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="e.g. Mohamed"
-                style={{
-                  width: '100%',
-                  padding: '0.625rem 0.875rem',
-                  borderRadius: '0.5rem',
-                  background: '#0F172A',
-                  border: `1px solid ${lastName && lastName.trim().length < 2 ? '#EF4444' : 'rgba(255, 255, 255, 0.1)'}`,
-                  color: '#FFF',
-                  outline: 'none',
-                  fontSize: '0.875rem',
-                  transition: 'border-color 0.2s',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <div style={iconWrapperStyle}>
+                  <User size={15} />
+                </div>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="e.g. Mohamed"
+                  autoComplete="off"
+                  style={inputStyle(!!lastName && lastName.trim().length < 2)}
+                />
+              </div>
               {lastName && lastName.trim().length < 2 && (
                 <span style={{ fontSize: '0.7rem', color: '#F87171', marginTop: '0.25rem', display: 'block' }}>
                   Minimum 2 characters
@@ -251,28 +295,85 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
             </div>
           </div>
 
+          {/* Personal Email Field */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '0.375rem' }}>
+              Personal Email <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: 400 }}>(Optional)</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <div style={iconWrapperStyle}>
+                <Mail size={15} />
+              </div>
+              <input
+                type="email"
+                value={personalEmail}
+                onChange={(e) => setPersonalEmail(e.target.value)}
+                placeholder="e.g. ahmed.mohamed@gmail.com"
+                autoComplete="off"
+                style={inputStyle(!isEmailValid)}
+              />
+            </div>
+            {!isEmailValid && (
+              <span style={{ fontSize: '0.7rem', color: '#F87171', marginTop: '0.25rem', display: 'block' }}>
+                Please enter a valid email address
+              </span>
+            )}
+          </div>
+
+          {/* Phone Number Field */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '0.375rem' }}>
+              Phone Number <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: 400 }}>(Optional)</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <div style={iconWrapperStyle}>
+                <Phone size={15} />
+              </div>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="e.g. +20 1XX XXX XXXX"
+                autoComplete="off"
+                style={inputStyle(!isPhoneValid)}
+              />
+            </div>
+            {!isPhoneValid && (
+              <span style={{ fontSize: '0.7rem', color: '#F87171', marginTop: '0.25rem', display: 'block' }}>
+                Please enter a valid phone number
+              </span>
+            )}
+          </div>
+
           {/* Auto-generated info notice */}
           <div
             style={{
-              padding: '0.625rem 0.875rem',
-              borderRadius: '0.5rem',
-              background: 'rgba(251, 191, 36, 0.08)',
-              border: '1px solid rgba(251, 191, 36, 0.2)',
-              fontSize: '0.75rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '0.625rem',
+              background: 'rgba(251, 191, 36, 0.06)',
+              border: '1px solid rgba(251, 191, 36, 0.15)',
+              fontSize: '0.78rem',
               color: '#FBBF24',
-              lineHeight: 1.5,
+              lineHeight: 1.6,
             }}
           >
-            💡 An email & password will be auto-generated. The student can log in with:
-            <br />
-            <span style={{ color: '#94A3B8' }}>Email:</span>{' '}
-            <span style={{ fontFamily: 'monospace' }}>
-              {firstName.trim() && lastName.trim()
-                ? `${firstName.trim().toLowerCase()}.${lastName.trim().toLowerCase()}@innovera-intern.com`
-                : 'firstname.lastname@innovera-intern.com'}
-            </span>
-            <br />
-            <span style={{ color: '#94A3B8' }}>Password:</span> <span style={{ fontFamily: 'monospace' }}>Innovera@2026</span>
+            <strong style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              System Credentials (Auto-Generated)
+            </strong>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+              <div>
+                <span style={{ color: '#94A3B8' }}>Platform Login Email: </span>
+                <span style={{ fontFamily: 'monospace', color: '#38BDF8' }}>
+                  {firstName.trim() && lastName.trim()
+                    ? `${firstName.trim().toLowerCase()}.${lastName.trim().toLowerCase()}@innovera-intern.com`
+                    : 'firstname.lastname@innovera-intern.com'}
+                </span>
+              </div>
+              <div>
+                <span style={{ color: '#94A3B8' }}>Password: </span>
+                <span style={{ fontFamily: 'monospace', color: '#38BDF8' }}>Innovera@2026</span>
+              </div>
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -295,11 +396,11 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={saving || !isValid}
+              disabled={saving || !isValid || !isEmailValid || !isPhoneValid}
               style={{
                 padding: '0.5rem 1.5rem',
                 borderRadius: '0.375rem',
-                background: isValid
+                background: isValid && isEmailValid && isPhoneValid
                   ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
                   : 'rgba(255, 255, 255, 0.1)',
                 border: 'none',
@@ -312,7 +413,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 transition: 'all 0.2s',
               }}
             >
-              {saving ? '⏳ Adding...' : '+ Add Student'}
+              {saving ? 'Adding...' : '+ Add Student'}
             </button>
           </div>
         </form>

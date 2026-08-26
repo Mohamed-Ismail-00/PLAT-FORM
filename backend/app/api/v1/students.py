@@ -134,9 +134,22 @@ async def update_student_progress(
     enrollment.progress_percentage = round((attendance_pct + task_pct) / 2.0, 1)
 
     student_repo = StudentRepository(db)
-    student = await student_repo.get_by_id(student_id)
+    student = await student_repo.get_with_user(student_id)
     if student:
+        # Update user personal info if provided
+        if student.user:
+            if data.first_name is not None and data.first_name.strip():
+                student.user.first_name = data.first_name.strip()
+            if data.last_name is not None and data.last_name.strip():
+                student.user.last_name = data.last_name.strip()
+            if data.phone is not None:
+                student.user.phone = data.phone.strip() if data.phone else None
+            if data.email is not None and data.email.strip():
+                student.user.email = data.email.strip()
+
         meta = dict(student.metadata_ or {})
+        if data.personal_email is not None:
+            meta["personal_email"] = data.personal_email.strip() if data.personal_email else ""
         if data.feedback is not None:
             meta["feedback"] = data.feedback
             meta["feedback_updated_at"] = datetime.now(timezone.utc).isoformat()

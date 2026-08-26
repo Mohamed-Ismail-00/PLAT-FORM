@@ -152,6 +152,11 @@ class DashboardService:
             "overview": {
                 "student_name": student.user.full_name if student.user else "",
                 "student_code": student.student_code,
+                "first_name": student.user.first_name if student.user else "",
+                "last_name": student.user.last_name if student.user else "",
+                "email": student.user.email if student.user else "",
+                "phone": student.user.phone if student.user else "",
+                "personal_email": meta.get("personal_email", ""),
                 "feedback": meta.get("feedback"),
                 "feedback_updated_at": meta.get("feedback_updated_at"),
                 "tasks": meta.get("tasks", []),

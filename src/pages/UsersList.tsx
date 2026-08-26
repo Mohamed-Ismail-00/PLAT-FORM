@@ -390,6 +390,10 @@ const UsersList: React.FC = () => {
           onClose={() => setEditingStudent(null)}
           studentId={editingStudent.id}
           studentName={editingStudent.full_name}
+          initialFirstName={editingStudent.first_name || (editingStudent.full_name?.split(' ')[0] || '')}
+          initialLastName={editingStudent.last_name || (editingStudent.full_name?.split(' ').slice(1).join(' ') || '')}
+          initialPhone={editingStudent.phone || ''}
+          initialPersonalEmail={editingStudent.personal_email || ''}
           initialAttended={editingStudent.attended_lessons_count ?? 0}
           initialTotalLessons={editingStudent.total_lessons_count ?? 10}
           initialCompletedTasks={editingStudent.completed_tasks_count ?? (Array.isArray(editingStudent.tasks) ? editingStudent.tasks.length : 0)}

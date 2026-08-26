@@ -36,6 +36,11 @@ class StudentProgressUpdate(BaseModel):
     total_tasks_count: int = Field(12, ge=1)
     feedback: Optional[str] = None
     tasks: Optional[list[TaskItem]] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    personal_email: Optional[str] = None
+    email: Optional[str] = None
 
 
 class EnrollmentResponse(BaseModel):

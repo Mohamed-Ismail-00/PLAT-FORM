@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../services/api';
 import { 
   MessageSquare, 
   Plus, 
   Trash2, 
-  ExternalLink, 
+  Edit3, 
   CheckCircle2, 
   Award, 
   Users, 
   MessageCircle, 
-  Link as LinkIcon 
+  Link as LinkIcon, 
+  ExternalLink,
+  User,
+  Phone,
+  Mail,
+  Calendar,
+  Check,
+  X,
+  Sparkles
 } from 'lucide-react';
 
 export type TaskItem = {
@@ -38,6 +46,10 @@ interface EditStudentProgressModalProps {
   onClose: () => void;
   studentId: string;
   studentName: string;
+  initialFirstName?: string;
+  initialLastName?: string;
+  initialPhone?: string;
+  initialPersonalEmail?: string;
   initialAttended: number;
   initialTotalLessons: number;
   initialCompletedTasks: number;
@@ -49,11 +61,11 @@ interface EditStudentProgressModalProps {
 }
 
 const QUICK_FEEDBACK_TEMPLATES = [
-  { label: '🌟 Outstanding Performance', text: 'Outstanding commitment and high-quality task submissions. Consistently exceeds expectations.' },
-  { label: '🚀 Fast Learner', text: 'Shows great analytical skills and grasp of complex concepts. Recommended for advanced projects.' },
-  { label: '📈 Steady Progress', text: 'Good progress overall. Needs to focus on submitting upcoming assignments on time.' },
-  { label: '💬 Needs More Practice', text: 'Regular attendance, but requires additional hands-on practice in practical tasks.' },
-  { label: '⚠️ Follow-up Required', text: 'Noticeable drop in attendance/tasks. Academic follow-up recommended.' },
+  { label: 'Outstanding Performance', text: 'Outstanding commitment and high-quality task submissions. Consistently exceeds expectations.' },
+  { label: 'Fast Learner', text: 'Shows great analytical skills and grasp of complex concepts. Recommended for advanced projects.' },
+  { label: 'Steady Progress', text: 'Good progress overall. Needs to focus on submitting upcoming assignments on time.' },
+  { label: 'Needs More Practice', text: 'Regular attendance, but requires additional hands-on practice in practical tasks.' },
+  { label: 'Follow-up Required', text: 'Noticeable drop in attendance/tasks. Academic follow-up recommended.' },
 ];
 
 export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> = ({
@@ -61,6 +73,10 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   onClose,
   studentId,
   studentName,
+  initialFirstName = '',
+  initialLastName = '',
+  initialPhone = '',
+  initialPersonalEmail = '',
   initialAttended = 0,
   initialTotalLessons = 10,
   initialCompletedTasks = 0,
@@ -70,6 +86,17 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   isIntern = true,
   onSuccess,
 }) => {
+  // Parse name into first and last if not provided explicitly
+  const defaultFirst = initialFirstName || (studentName.split(' ')[0] || '');
+  const defaultLast = initialLastName || (studentName.split(' ').slice(1).join(' ') || '');
+
+  // Student personal info state
+  const [firstName, setFirstName] = useState<string>(defaultFirst);
+  const [lastName, setLastName] = useState<string>(defaultLast);
+  const [phone, setPhone] = useState<string>(initialPhone || '');
+  const [personalEmail, setPersonalEmail] = useState<string>(initialPersonalEmail || '');
+
+  // Progress state
   const [attended, setAttended] = useState<number>(initialAttended);
   const [totalLessons, setTotalLessons] = useState<number>(initialTotalLessons || 10);
   const [completedTasksCount, setCompletedTasksCount] = useState<number>(initialCompletedTasks);
@@ -87,9 +114,23 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   const [newQuality, setNewQuality] = useState<number>(5);
   const [newTeam, setNewTeam] = useState<number>(5);
 
+  // Editing existing task state (index of the task being edited)
+  const [editingTaskIndex, setEditingTaskIndex] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState<string>('');
+  const [editLink, setEditLink] = useState<string>('');
+  const [editComm, setEditComm] = useState<number>(5);
+  const [editQuality, setEditQuality] = useState<number>(5);
+  const [editTeam, setEditTeam] = useState<number>(5);
+
   // Sync state when props change or when modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
+      const fName = initialFirstName || (studentName.split(' ')[0] || '');
+      const lName = initialLastName || (studentName.split(' ').slice(1).join(' ') || '');
+      setFirstName(fName);
+      setLastName(lName);
+      setPhone(initialPhone || '');
+      setPersonalEmail(initialPersonalEmail || '');
       setAttended(initialAttended ?? 0);
       setTotalLessons(initialTotalLessons || 10);
       setCompletedTasksCount(initialCompletedTasks ?? 0);
@@ -97,13 +138,13 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
       setFeedback(initialFeedback || '');
       setTasks(Array.isArray(initialTasks) ? [...initialTasks] : []);
       setIsAddingTask(false);
+      setEditingTaskIndex(null);
       setToastMessage(null);
     }
-  }, [isOpen, studentId, initialAttended, initialTotalLessons, initialCompletedTasks, initialTotalTasks, initialFeedback, initialTasks]);
+  }, [isOpen, studentId, studentName, initialFirstName, initialLastName, initialPhone, initialPersonalEmail, initialAttended, initialTotalLessons, initialCompletedTasks, initialTotalTasks, initialFeedback, initialTasks]);
 
   if (!isOpen) return null;
 
-  const effectiveCompletedTasks = isIntern ? tasks.length : completedTasksCount;
   const attendancePct = totalLessons > 0 ? Math.round((attended / totalLessons) * 100) : 0;
   
   // Calculate average rating of tasks
@@ -148,7 +189,48 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
     setIsAddingTask(false);
   };
 
+  const handleStartEditTask = (index: number) => {
+    const task = tasks[index];
+    if (!task) return;
+    setEditingTaskIndex(index);
+    setEditTitle(task.title || '');
+    setEditLink(task.submission_link || '');
+    setEditComm(task.communication_rating || 5);
+    setEditQuality(task.quality_rating || 5);
+    setEditTeam(task.teamwork_rating || 5);
+  };
+
+  const handleSaveEditTask = () => {
+    if (editingTaskIndex === null) return;
+    if (!editTitle.trim()) {
+      alert('Please enter a task title');
+      return;
+    }
+
+    setTasks((prev) => {
+      const updated = [...prev];
+      updated[editingTaskIndex] = {
+        ...updated[editingTaskIndex],
+        title: editTitle.trim(),
+        submission_link: editLink.trim() || undefined,
+        communication_rating: editComm,
+        quality_rating: editQuality,
+        teamwork_rating: editTeam,
+      };
+      return updated;
+    });
+
+    setEditingTaskIndex(null);
+  };
+
+  const handleCancelEditTask = () => {
+    setEditingTaskIndex(null);
+  };
+
   const handleDeleteTask = (indexToDelete: number) => {
+    if (editingTaskIndex === indexToDelete) {
+      setEditingTaskIndex(null);
+    }
     setTasks((prev) => prev.filter((_, idx) => idx !== indexToDelete));
   };
 
@@ -157,22 +239,31 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
     setSaving(true);
     setToastMessage(null);
 
-    const payload = {
+    const payload: any = {
       attended_lessons_count: attended,
       total_lessons_count: totalLessons,
       completed_tasks_count: isIntern ? tasks.length : completedTasksCount,
       total_tasks_count: isIntern ? Math.max(tasks.length, 1) : totalTasks,
       feedback: feedback.trim(),
       tasks: isIntern ? tasks : undefined,
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      phone: phone.trim() || null,
+      personal_email: personalEmail.trim() || null,
     };
 
     try {
       const response = await api.put(`/students/${studentId}/progress`, payload);
-      setToastMessage({ text: '✅ Progress, tasks & feedback saved successfully!', type: 'success' });
+      setToastMessage({ text: 'Student profile, tasks & progress updated successfully!', type: 'success' });
       
       setTimeout(() => {
         onSuccess({
           studentId,
+          full_name: `${firstName.trim()} ${lastName.trim()}`,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: phone.trim(),
+          personal_email: personalEmail.trim(),
           attended_lessons_count: attended,
           total_lessons_count: totalLessons,
           completed_tasks_count: isIntern ? tasks.length : completedTasksCount,
@@ -183,11 +274,11 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
           scoring: response.data?.data?.scoring,
         });
         onClose();
-      }, 600);
+      }, 700);
     } catch (err: any) {
-      console.error('Failed to update student progress:', err);
+      console.error('Failed to update student:', err);
       setToastMessage({
-        text: err.response?.data?.detail || 'Failed to save progress. Please try again.',
+        text: err.response?.data?.detail || 'Failed to save student changes. Please try again.',
         type: 'error',
       });
     } finally {
@@ -218,7 +309,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
           background: 'var(--bg-card)',
           border: '1px solid var(--border-color)',
           borderRadius: '1rem',
-          maxWidth: '680px',
+          maxWidth: '720px',
           width: '100%',
           maxHeight: '94vh',
           overflowY: 'auto',
@@ -240,11 +331,11 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
           }}
         >
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Edit Progress, Tasks & Feedback
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+              Edit Student Details, Tasks & Progress
             </h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-              Student: <span style={{ color: 'var(--secondary-color)', fontWeight: 600 }}>{studentName}</span>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem', margin: 0 }}>
+              Editing: <span style={{ color: 'var(--secondary-color)', fontWeight: 600 }}>{studentName}</span>
             </p>
           </div>
           <button
@@ -283,47 +374,120 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
             </div>
           )}
 
-          {/* Real-time Summary Preview Card */}
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              border: '1px solid var(--border-color)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '0.75rem',
-              textAlign: 'center',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Attendance</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#38BDF8' }}>{attendancePct}%</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{attended} / {totalLessons} Days Attended</div>
+          {/* 1. Student Personal & Contact Details */}
+          <div style={{ background: 'var(--bg-surface)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', fontWeight: 700, color: 'var(--secondary-color)', marginBottom: '0.85rem' }}>
+              <User size={17} />
+              <span>Personal & Contact Information</span>
+            </label>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '0.85rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                  First Name *
+                </label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First Name"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last Name"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                />
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tasks Done</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#A855F7' }}>
-                {effectiveCompletedTasks} {effectiveCompletedTasks === 1 ? 'Task' : 'Tasks'}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                  <Phone size={13} />
+                  <span>Phone Number</span>
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="e.g. +20 100 123 4567"
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                />
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                {isIntern ? `Avg: ${avgTaskScore} / 5.0 ⭐` : `${effectiveCompletedTasks} Completed`}
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                  <Mail size={13} />
+                  <span>Personal Email (Gmail)</span>
+                </label>
+                <input
+                  type="email"
+                  value={personalEmail}
+                  onChange={(e) => setPersonalEmail(e.target.value)}
+                  placeholder="e.g. student@gmail.com"
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                />
               </div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Estimated Score</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: estimatedOverall >= 75 ? '#34D399' : estimatedOverall >= 50 ? '#FBBF24' : '#F87171' }}>
-                {estimatedOverall}%
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Overall Performance</div>
             </div>
           </div>
 
-          {/* 1. Attendance Section */}
-          <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#38BDF8', marginBottom: '0.75rem' }}>
-              📅 Days Attended
-            </label>
+          {/* 2. Days Attended Section */}
+          <div style={{ background: 'var(--bg-surface)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', fontWeight: 700, color: '#38BDF8' }}>
+                <Calendar size={17} />
+                <span>Days Attended</span>
+              </label>
+              <span style={{ fontSize: '0.825rem', fontWeight: 700, color: attendancePct >= 75 ? '#10B981' : '#F59E0B' }}>
+                {attendancePct}% Attendance Rate
+              </span>
+            </div>
+            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Days Attended</label>
@@ -365,24 +529,26 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
             </div>
           </div>
 
-          {/* 2. Tasks Management Section */}
+          {/* 3. Tasks Management Section with FULL EDIT & DELETE & ADD */}
           {isIntern ? (
-            /* DETAILED INTERN TASKS MANAGEMENT WITH 3 CRITERIA RATINGS & SUBMISSION LINK - UNLIMITED */
             <div style={{ background: 'var(--bg-surface)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', fontWeight: 700, color: '#A855F7' }}>
                     <CheckCircle2 size={18} />
-                    <span>Intern Tasks & Deliverables ({tasks.length} Completed)</span>
+                    <span>Intern Tasks & Deliverables ({tasks.length} Saved)</span>
                   </label>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                    Add submitted tasks, deliverable links, and evaluate across Communication, Quality & Teamwork.
+                    Create, edit, or delete submitted deliverables and update Communication, Quality & Teamwork ratings.
                   </p>
                 </div>
                 {!isAddingTask && (
                   <button
                     type="button"
-                    onClick={() => setIsAddingTask(true)}
+                    onClick={() => {
+                      setIsAddingTask(true);
+                      setEditingTaskIndex(null);
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -421,7 +587,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#A855F7' }}>
-                      ✨ Add New Task Deliverable
+                      Add New Task Deliverable
                     </span>
                     <button
                       type="button"
@@ -477,7 +643,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                     />
                   </div>
 
-                  {/* 3 Criteria Ratings (Communication, Task Quality, Teamwork) */}
+                  {/* 3 Criteria Ratings */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginTop: '0.25rem' }}>
                     <CriteriaRating
                       label="Communication"
@@ -499,14 +665,14 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                     />
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.25rem' }}>
                     <button
                       type="button"
                       onClick={() => setIsAddingTask(false)}
                       style={{
                         padding: '0.4rem 0.85rem',
                         borderRadius: '0.375rem',
-                        background: 'var(--bg-surface)',
+                        background: 'none',
                         border: '1px solid var(--border-color)',
                         color: 'var(--text-muted)',
                         fontSize: '0.8rem',
@@ -521,26 +687,161 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                       style={{
                         padding: '0.4rem 1rem',
                         borderRadius: '0.375rem',
-                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                        background: 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)',
                         color: '#FFFFFF',
                         border: 'none',
                         fontSize: '0.8rem',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
                       }}
                     >
-                      Confirm Task
+                      + Save Task
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* List of Existing Tasks */}
+              {/* Tasks List */}
               {tasks.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   {tasks.map((task, idx) => {
-                    const avgRating = ((task.communication_rating + task.quality_rating + task.teamwork_rating) / 3).toFixed(1);
+                    const isEditing = editingTaskIndex === idx;
+                    const taskAvg = ((task.communication_rating + task.quality_rating + task.teamwork_rating) / 3).toFixed(1);
+
+                    if (isEditing) {
+                      return (
+                        <div
+                          key={task.id || idx}
+                          style={{
+                            background: 'var(--bg-card)',
+                            border: '2px solid #A855F7',
+                            borderRadius: '0.625rem',
+                            padding: '1rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.75rem',
+                            boxShadow: '0 4px 14px rgba(168, 85, 247, 0.2)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#A855F7' }}>
+                              ✏️ Editing Task #{idx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleCancelEditTask}
+                              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                              Task Name / Title *
+                            </label>
+                            <input
+                              type="text"
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '0.375rem',
+                                background: 'var(--input-bg)',
+                                border: '1px solid var(--border-color)',
+                                color: 'var(--text-main)',
+                                fontSize: '0.85rem',
+                                outline: 'none',
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                              <LinkIcon size={12} />
+                              <span>Submission Link</span>
+                            </label>
+                            <input
+                              type="url"
+                              value={editLink}
+                              onChange={(e) => setEditLink(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '0.375rem',
+                                background: 'var(--input-bg)',
+                                border: '1px solid var(--border-color)',
+                                color: 'var(--text-main)',
+                                fontSize: '0.85rem',
+                                outline: 'none',
+                              }}
+                            />
+                          </div>
+
+                          {/* 3 Criteria Ratings */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                            <CriteriaRating
+                              label="Communication"
+                              icon={<MessageCircle size={13} />}
+                              value={editComm}
+                              onChange={setEditComm}
+                            />
+                            <CriteriaRating
+                              label="Task Quality"
+                              icon={<Award size={13} />}
+                              value={editQuality}
+                              onChange={setEditQuality}
+                            />
+                            <CriteriaRating
+                              label="Teamwork"
+                              icon={<Users size={13} />}
+                              value={editTeam}
+                              onChange={setEditTeam}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.25rem' }}>
+                            <button
+                              type="button"
+                              onClick={handleCancelEditTask}
+                              style={{
+                                padding: '0.4rem 0.85rem',
+                                borderRadius: '0.375rem',
+                                background: 'none',
+                                border: '1px solid var(--border-color)',
+                                color: 'var(--text-muted)',
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSaveEditTask}
+                              style={{
+                                padding: '0.4rem 1rem',
+                                borderRadius: '0.375rem',
+                                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                              }}
+                            >
+                              <Check size={14} />
+                              <span>Update Task</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div
                         key={task.id || idx}
@@ -553,15 +854,14 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: '0.75rem',
-                          transition: 'all 0.2s ease',
                         }}
                       >
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#A855F7' }}>
                               #{idx + 1}
                             </span>
-                            <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)' }}>
+                            <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)', wordBreak: 'break-word' }}>
                               {task.title}
                             </span>
                             {task.submission_link && (
@@ -576,10 +876,6 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                                   alignItems: 'center',
                                   gap: '0.2rem',
                                   textDecoration: 'none',
-                                  background: 'rgba(99, 102, 241, 0.1)',
-                                  padding: '0.15rem 0.45rem',
-                                  borderRadius: '0.25rem',
-                                  border: '1px solid rgba(99, 102, 241, 0.2)',
                                 }}
                               >
                                 <span>Link</span>
@@ -588,48 +884,59 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                             )}
                           </div>
 
-                          {/* 3 Criteria Evaluation Badges */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.4rem' }}>
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                              🗣️ Comm: <b style={{ color: 'var(--text-main)' }}>{task.communication_rating}★</b>
-                            </span>
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                              🎯 Quality: <b style={{ color: 'var(--text-main)' }}>{task.quality_rating}★</b>
-                            </span>
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                              🤝 Team: <b style={{ color: 'var(--text-main)' }}>{task.teamwork_rating}★</b>
-                            </span>
-                            <span style={{ 
-                              fontSize: '0.72rem', 
-                              fontWeight: 700, 
-                              color: Number(avgRating) >= 4 ? '#10B981' : '#F59E0B',
-                              marginLeft: 'auto'
-                            }}>
-                              Score: {avgRating} / 5.0
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            <span>Comm: <b style={{ color: '#38BDF8' }}>{task.communication_rating}★</b></span>
+                            <span>Quality: <b style={{ color: '#A855F7' }}>{task.quality_rating}★</b></span>
+                            <span>Team: <b style={{ color: '#10B981' }}>{task.teamwork_rating}★</b></span>
+                            <span style={{ marginLeft: 'auto', fontWeight: 700, color: Number(taskAvg) >= 4 ? '#10B981' : '#F59E0B' }}>
+                              Score: {taskAvg} / 5.0
                             </span>
                           </div>
                         </div>
 
-                        {/* Delete Task Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTask(idx)}
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                            color: '#EF4444',
-                            borderRadius: '0.375rem',
-                            padding: '0.35rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                          title="Remove task"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {/* Action buttons: Edit & Delete */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditTask(idx)}
+                            style={{
+                              background: 'rgba(99, 102, 241, 0.1)',
+                              border: '1px solid rgba(99, 102, 241, 0.25)',
+                              color: 'var(--secondary-color)',
+                              borderRadius: '0.375rem',
+                              padding: '0.4rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Edit Task & Ratings"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTask(idx)}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.2)',
+                              color: '#EF4444',
+                              borderRadius: '0.375rem',
+                              padding: '0.4rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Remove task"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -646,7 +953,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
             /* STANDARD TASKS COUNTER (For Non-Interns Courses) */
             <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#A855F7', marginBottom: '0.75rem' }}>
-                📝 Assignments & Tasks
+                Assignments & Tasks
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
@@ -689,7 +996,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
             </div>
           )}
 
-          {/* 3. Feedback & Performance Notes Section */}
+          {/* 4. Feedback & Performance Notes Section */}
           <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--secondary-color)' }}>
@@ -791,7 +1098,8 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                 gap: '0.4rem',
               }}
             >
-              {saving ? 'Saving...' : 'Save & Calculate'}
+              <Sparkles size={15} />
+              <span>{saving ? 'Saving...' : 'Save & Calculate'}</span>
             </button>
           </div>
         </form>
@@ -809,16 +1117,12 @@ const CriteriaRating: React.FC<{
   onChange: (val: number) => void;
 }> = ({ label, icon, value, onChange }) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          {icon} <span>{label}</span>
-        </span>
-        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--secondary-color)' }}>
-          {value}★
-        </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+        {icon}
+        <span>{label}</span>
       </div>
-      <div style={{ display: 'flex', gap: '0.25rem' }}>
+      <div style={{ display: 'flex', gap: '0.2rem' }}>
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -828,16 +1132,16 @@ const CriteriaRating: React.FC<{
               flex: 1,
               padding: '0.25rem 0',
               borderRadius: '0.25rem',
-              border: star <= value ? '1px solid var(--secondary-color)' : '1px solid var(--border-color)',
-              background: star <= value ? 'rgba(99, 102, 241, 0.2)' : 'var(--input-bg)',
-              color: star <= value ? 'var(--secondary-color)' : 'var(--text-muted)',
-              fontSize: '0.7rem',
+              border: 'none',
+              background: star <= value ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : 'var(--bg-surface)',
+              color: star <= value ? '#FFFFFF' : 'var(--text-muted)',
+              fontSize: '0.72rem',
               fontWeight: 700,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
           >
-            {star}
+            {star}★
           </button>
         ))}
       </div>

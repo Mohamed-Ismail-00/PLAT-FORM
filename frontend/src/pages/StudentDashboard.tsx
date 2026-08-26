@@ -458,6 +458,10 @@ const StudentDashboard: React.FC = () => {
           onClose={() => setIsEditOpen(false)}
           studentId={id}
           studentName={overview?.student_name || 'Student'}
+          initialFirstName={overview?.first_name || (overview?.student_name?.split(' ')[0] || '')}
+          initialLastName={overview?.last_name || (overview?.student_name?.split(' ').slice(1).join(' ') || '')}
+          initialPhone={overview?.phone || ''}
+          initialPersonalEmail={overview?.personal_email || ''}
           initialAttended={attendedLessons}
           initialTotalLessons={totalLessons}
           initialCompletedTasks={completedTasks}

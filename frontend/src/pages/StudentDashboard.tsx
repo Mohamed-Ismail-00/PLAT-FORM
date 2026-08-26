@@ -150,6 +150,8 @@ const StudentDashboard: React.FC = () => {
         feedback: overview.feedback || currentFeedback,
         feedbackUpdatedAt: overview.feedback_updated_at,
         attendanceRate: attendance?.rate,
+        phone: overview.phone,
+        personalEmail: overview.personal_email,
       });
     } catch (err) {
       console.error('Failed to generate PDF report:', err);

@@ -15,6 +15,8 @@ import {
   Download
 } from 'lucide-react';
 import { EditStudentProgressModal, type TaskItem } from '../components/EditStudentProgressModal';
+import { CertificateModal } from '../components/CertificateModal';
+import { Award } from 'lucide-react';
 import { generateStudentPDFReport } from '../services/pdfReportGenerator';
 import { 
   ResponsiveContainer,
@@ -28,6 +30,7 @@ const StudentDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [isCertOpen, setIsCertOpen] = useState(false);
 
   // Edit form state
   const [attendedLessons, setAttendedLessons] = useState(0);
@@ -215,7 +218,31 @@ const StudentDashboard: React.FC = () => {
               title="Download Official Executive Evaluation Report (PDF)"
             >
               <FileDown size={15} />
-              <span>{downloadingPdf ? 'Generating PDF...' : 'Download Official Report (PDF)'}</span>
+              <span>{downloadingPdf ? 'Generating PDF...' : 'Official Report (PDF)'}</span>
+            </button>
+
+            {/* Generate Certificate Button */}
+            <button
+              onClick={() => setIsCertOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.45rem 1rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.825rem',
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                transition: 'all 0.2s ease',
+              }}
+              title="Generate & Download Official Internship Certificate"
+            >
+              <Award size={15} />
+              <span>Generate Certificate</span>
             </button>
           </div>
           <p style={{ color: 'var(--text-muted)' }}>Performance analytics for {overview.current_enrollment?.course_title || 'Enrolled Program'}.</p>
@@ -452,6 +479,17 @@ const StudentDashboard: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Certificate Generator Modal */}
+      {isCertOpen && (
+        <CertificateModal
+          isOpen={isCertOpen}
+          onClose={() => setIsCertOpen(false)}
+          studentName={overview?.student_name || 'Student Name'}
+          studentCode={overview?.student_code || 'INV-2026'}
+          courseTitle={overview?.current_enrollment?.course_title || 'AI track'}
+        />
+      )}
 
       {/* Edit Progress Modal */}
       {isEditOpen && id && (

@@ -4,6 +4,8 @@ import { Card } from '../components/UI';
 import { useNavigate } from 'react-router-dom';
 import { EditStudentProgressModal, type TaskItem } from '../components/EditStudentProgressModal';
 import { AddStudentModal } from '../components/AddStudentModal';
+import { CertificateModal } from '../components/CertificateModal';
+import { Award } from 'lucide-react';
 import { MessageSquare, Plus, Trash2, Edit3, Eye, CheckCircle2 } from 'lucide-react';
 
 const UsersList: React.FC = () => {
@@ -12,6 +14,7 @@ const UsersList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState<string>('All');
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
+  const [certStudent, setCertStudent] = useState<any | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteToast, setDeleteToast] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -382,6 +385,17 @@ const UsersList: React.FC = () => {
           </table>
         </div>
       </Card>
+
+      {/* Certificate Modal */}
+      {certStudent && (
+        <CertificateModal
+          isOpen={!!certStudent}
+          onClose={() => setCertStudent(null)}
+          studentName={certStudent.full_name || 'Student Name'}
+          studentCode={certStudent.student_code || 'INV-2026'}
+          courseTitle={certStudent.track_name || selectedTrack || 'AI track'}
+        />
+      )}
 
       {/* Edit Student Progress Modal */}
       {editingStudent && (

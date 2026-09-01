@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Award, Download, FileText, Image as ImageIcon, X, Check, Calendar, User, Sparkles } from 'lucide-react';
-import { generateStudentCertificatePDF, generateStudentCertificatePNG } from '../services/certificateGenerator';
+// Keep the production certificate flow on the canonical generator/template.
+// The project currently has two source trees; this prevents the modal preview
+// from drifting away from the generator used for PDF and PNG exports.
+import { generateStudentCertificatePDF, generateStudentCertificatePNG, CERTIFICATE_TEMPLATE_B64 } from '../../frontend/src/services/certificateGenerator';
 
 interface CertificateModalProps {
   isOpen: boolean;
@@ -47,28 +50,28 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     if (!ctx) return;
 
     const img = new Image();
-    img.src = '/assets/certificate_template.png';
+    img.src = CERTIFICATE_TEMPLATE_B64;
     img.onload = () => {
       canvas.width = 1200;
       canvas.height = Math.round(1200 * (img.height / img.width));
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       // Draw Student Name
-      ctx.fillStyle = '#0B2545';
+      ctx.fillStyle = '#004976';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
       const sName = name.trim() || 'Student Name';
-      let fontSize = 42;
-      if (sName.length > 30) fontSize = 32;
-      else if (sName.length > 22) fontSize = 36;
+      let fontSize = 48;
+      if (sName.length > 30) fontSize = 38;
+      else if (sName.length > 22) fontSize = 42;
 
-      ctx.font = `bold ${fontSize}px "Segoe UI", Arial, sans-serif`;
-      ctx.fillText(sName, canvas.width / 2, canvas.height * 0.465);
+      ctx.font = `${fontSize}px Arial, "Segoe UI", sans-serif`;
+      ctx.fillText(sName, canvas.width / 2, canvas.height * 0.455);
 
       // Draw Description
       ctx.fillStyle = '#14233C';
-      ctx.font = '24px Georgia, serif';
+      ctx.font = 'bold 28px Georgia, serif';
       const cleanTrack = track.trim().toLowerCase().endsWith('track') ? track.trim() : `${track.trim()} track`;
       const desc1 = 'For completing an internship program for the';
       const desc2 = `month of (${monthYear.trim() || 'July 2026'}) at Innovera in ${cleanTrack}`;

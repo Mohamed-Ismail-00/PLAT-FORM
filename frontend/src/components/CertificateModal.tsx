@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Award, Download, FileText, Image as ImageIcon, X, Check, Calendar, User, Sparkles } from 'lucide-react';
-import { generateStudentCertificatePDF, generateStudentCertificatePNG } from '../services/certificateGenerator';
+import { generateStudentCertificatePDF, generateStudentCertificatePNG, CERTIFICATE_TEMPLATE_B64 } from '../services/certificateGenerator';
 
 interface CertificateModalProps {
   isOpen: boolean;
@@ -47,7 +47,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     if (!ctx) return;
 
     const img = new Image();
-    img.src = '/assets/certificate_template.png';
+    img.src = CERTIFICATE_TEMPLATE_B64;
     img.onload = () => {
       canvas.width = 1200;
       canvas.height = Math.round(1200 * (img.height / img.width));

@@ -24,7 +24,7 @@ function App() {
             
             {/* Protected Dashboard Routes */}
             <Route path="/" element={<DashboardLayout />}>
-              <Route index element={<Navigate to="/admin" replace />} />
+              <Route index element={<Navigate to="/login" replace />} />
               
               {/* Student Routes */}
               <Route path="student" element={

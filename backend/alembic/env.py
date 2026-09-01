@@ -29,7 +29,7 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
-    url = settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql")
+    url = settings.get_database_url.replace("postgresql+asyncpg", "postgresql")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -53,7 +53,7 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = settings.DATABASE_URL
+    configuration["sqlalchemy.url"] = settings.get_database_url
     
     connectable = async_engine_from_config(
         configuration,

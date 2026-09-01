@@ -46,10 +46,7 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         if self.CORS_ORIGINS == "*":
             return ["*"]
-        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
-        if "*" not in origins:
-            origins.append("*")
-        return origins
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
     @property
     def get_database_url(self) -> str:

@@ -29,22 +29,22 @@ DBSession = Annotated[AsyncSession, Depends(get_db)]
 async def get_current_user(
     authorization: Optional[str] = Header(None),
 ) -> dict:
-    """Extract and validate the current user from JWT token, with fallback for seamless UI access."""
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization.split(" ")[1]
-        payload = decode_token(token)
-        if payload and payload.get("type") == "access":
-            return {
-                "user_id": payload.get("sub"),
-                "email": payload.get("email"),
-                "roles": payload.get("roles", []),
-            }
+    """Extract and validate the current user from a JWT access token."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise UnauthorizedException("Authentication is required")
 
-    # Default fallback admin session for smooth platform access
+    token = authorization.removeprefix("Bearer ").strip()
+    if not token:
+        raise UnauthorizedException("Authentication is required")
+
+    payload = decode_token(token)
+    if not payload or payload.get("type") != "access" or not payload.get("sub"):
+        raise UnauthorizedException("Invalid or expired access token")
+
     return {
-        "user_id": "00000000-0000-0000-0000-000000000001",
-        "email": "admin@innovera.com",
-        "roles": ["admin", "super_admin"],
+        "user_id": payload["sub"],
+        "email": payload.get("email"),
+        "roles": payload.get("roles", []),
     }
 
 

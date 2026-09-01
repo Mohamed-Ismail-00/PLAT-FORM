@@ -2,8 +2,12 @@ import axios from 'axios';
 
 const getBaseURL = () => {
   if (import.meta.env.VITE_API_URL) {
-    const url = import.meta.env.VITE_API_URL;
-    return url.endsWith('/api/v1') ? url : `${url.replace(/\/$/, '')}/api/v1`;
+    const configuredUrl = import.meta.env.VITE_API_URL.trim();
+    const url = /^https?:\/\//i.test(configuredUrl)
+      ? configuredUrl
+      : `${import.meta.env.PROD ? 'https' : 'http'}://${configuredUrl}`;
+    const normalizedUrl = url.replace(/\/+$/, '');
+    return normalizedUrl.endsWith('/api/v1') ? normalizedUrl : `${normalizedUrl}/api/v1`;
   }
   if (import.meta.env.PROD) {
     return '/api/v1';
@@ -21,7 +25,7 @@ const api = axios.create({
 // Add a request interceptor to inject the token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -37,6 +41,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('user');
       // Do NOT force window reload if we are already handling auth or on login page
       const currentPath = window.location.pathname;
       const requestUrl = error.config?.url || '';

@@ -21,25 +21,17 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { user, login } = useAuth();
+  const { logout, login } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
+  // Always require an explicit login when the login page is opened.
   useEffect(() => {
-    if (user) {
-      if (user.roles?.includes('admin') || user.roles?.includes('super_admin')) {
-        navigate('/admin', { replace: true });
-      } else if (user.roles?.includes('instructor')) {
-        navigate('/instructor', { replace: true });
-      } else {
-        navigate('/student', { replace: true });
-      }
-    }
-  }, [user, navigate]);
+    logout();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,44 +39,27 @@ const Login: React.FC = () => {
     setLoading(true);
 
     const cleanEmail = email.trim().toLowerCase();
-    const cleanPassword = password.trim();
+    const cleanPassword = password;
 
     try {
-      // 1. Attempt API authentication
-      let authSuccess = false;
-      try {
-        const res = await api.post('/auth/login', { 
-          email: cleanEmail, 
-          password: cleanPassword 
-        });
-        if (res.data?.data?.access_token) {
-          const { access_token, user: loggedUser } = res.data.data;
-          login(access_token, loggedUser);
-          authSuccess = true;
-          navigate('/admin', { replace: true });
-          return;
-        }
-      } catch (apiErr) {
-        console.warn('Backend API login notice, verifying master credentials...', apiErr);
+      const res = await api.post('/auth/login', {
+        email: cleanEmail,
+        password: cleanPassword,
+      });
+      const { access_token, user: loggedUser } = res.data?.data || {};
+
+      if (!access_token || !loggedUser) {
+        throw new Error('The authentication response was incomplete.');
       }
 
-      // 2. Master Credentials fallback
-      if (cleanEmail === 'innovera@gmail.com' && cleanPassword === 'innovera@2026') {
-        const masterAdminUser = {
-          id: '00000000-0000-0000-0000-000000000001',
-          email: 'innovera@gmail.com',
-          first_name: 'Innovera',
-          last_name: 'Admin',
-          roles: ['admin', 'super_admin']
-        };
-        const mockToken = 'innovera_master_token_' + Date.now();
-        login(mockToken, masterAdminUser);
+      login(access_token, loggedUser, rememberMe);
+
+      if (loggedUser.roles?.includes('admin') || loggedUser.roles?.includes('super_admin')) {
         navigate('/admin', { replace: true });
-        return;
-      }
-
-      if (!authSuccess) {
-        setError('Invalid email address or password. Please check your credentials and try again.');
+      } else if (loggedUser.roles?.includes('instructor')) {
+        navigate('/instructor', { replace: true });
+      } else {
+        navigate('/student', { replace: true });
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'An unexpected error occurred during authentication. Please try again.');

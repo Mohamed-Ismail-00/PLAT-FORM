@@ -25,7 +25,7 @@ router = APIRouter(prefix="/students", tags=["Students"])
 @router.get("")
 async def list_students(
     db: DBSession,
-    current_user: CurrentUser,
+    current_user: dict = Depends(require_roles(RoleName.ADMIN, RoleName.SUPER_ADMIN, RoleName.INSTRUCTOR)),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=1000),
     search: str = None,
@@ -191,7 +191,7 @@ async def update_student_progress(
 async def quick_add_student(
     data: QuickAddStudentRequest,
     db: DBSession,
-    current_user: CurrentUser,
+    current_user: dict = Depends(require_roles(RoleName.ADMIN, RoleName.SUPER_ADMIN)),
 ):
     """Quickly add a new student to a track.
     
@@ -273,7 +273,7 @@ async def quick_add_student(
 async def delete_student(
     student_id: UUID,
     db: DBSession,
-    current_user: CurrentUser,
+    current_user: dict = Depends(require_roles(RoleName.ADMIN, RoleName.SUPER_ADMIN)),
 ):
     """Delete a student and their associated user account cleanly."""
     student_repo = StudentRepository(db)

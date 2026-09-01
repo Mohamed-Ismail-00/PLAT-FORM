@@ -9,6 +9,7 @@ from datetime import datetime, date, timedelta, timezone
 import random
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete, select
 
 from app.db.session import async_session_factory, engine
 from app.models.base import Base
@@ -24,6 +25,65 @@ from app.models.notification import Notification, InstructorNote
 from app.core.security import hash_password
 
 
+async def ensure_platform_accounts(db: AsyncSession, roles: dict[str, Role]) -> None:
+    """Create or update the two supported platform administrator accounts."""
+    accounts = (
+        ("admin@innovera.com", "Admin1234", "Platform", "Administrator", "admin"),
+        ("superadmin@innovera.com", "Super1234", "Super", "Administrator", "super_admin"),
+    )
+
+    for email, password, first_name, last_name, role_name in accounts:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+
+        if user is None:
+            user = User(
+                email=email,
+                password_hash=hash_password(password),
+                first_name=first_name,
+                last_name=last_name,
+                status="active",
+            )
+            db.add(user)
+            await db.flush()
+        else:
+            user.password_hash = hash_password(password)
+            user.first_name = first_name
+            user.last_name = last_name
+            user.status = "active"
+
+        await db.execute(delete(UserRole).where(UserRole.user_id == user.id))
+        db.add(UserRole(user_id=user.id, role_id=roles[role_name].id))
+
+    resources = ["users", "courses", "students", "enrollments", "attendance",
+                 "quizzes", "assignments", "projects", "dashboard", "scoring", "notifications"]
+    permissions = []
+    for resource in resources:
+        for action in ["create", "read", "update", "delete"]:
+            result = await db.execute(
+                select(Permission).where(Permission.resource == resource, Permission.action == action)
+            )
+            permission = result.scalar_one_or_none()
+            if permission is None:
+                permission = Permission(resource=resource, action=action)
+                db.add(permission)
+                await db.flush()
+            permissions.append(permission)
+
+    for role_name in ("admin", "super_admin"):
+        for permission in permissions:
+            result = await db.execute(
+                select(RolePermission).where(
+                    RolePermission.role_id == roles[role_name].id,
+                    RolePermission.permission_id == permission.id,
+                )
+            )
+            if result.scalar_one_or_none() is None:
+                db.add(RolePermission(role_id=roles[role_name].id, permission_id=permission.id))
+
+    await db.flush()
+
+
 async def seed_database():
     """Seed the database with initial data."""
     # Create all tables
@@ -35,47 +95,27 @@ async def seed_database():
             # ── Roles ────────────────────────────────────────
             roles = {}
             for role_name in ["student", "instructor", "admin", "super_admin"]:
-                role = Role(name=role_name, description=f"{role_name.replace('_', ' ').title()} role")
-                db.add(role)
+                result = await db.execute(select(Role).where(Role.name == role_name))
+                role = result.scalar_one_or_none()
+                if role is None:
+                    role = Role(name=role_name, description=f"{role_name.replace('_', ' ').title()} role")
+                    db.add(role)
                 roles[role_name] = role
             await db.flush()
 
-            # ── Permissions ──────────────────────────────────
-            resources = ["users", "courses", "students", "enrollments", "attendance",
-                         "quizzes", "assignments", "projects", "dashboard", "scoring", "notifications"]
-            actions = ["create", "read", "update", "delete"]
-            permissions = {}
-            for resource in resources:
-                for action in actions:
-                    perm = Permission(resource=resource, action=action)
-                    db.add(perm)
-                    permissions[f"{resource}:{action}"] = perm
-            await db.flush()
+            existing_admin = await db.execute(
+                select(User.id).where(User.email == "admin@innovera.com")
+            )
+            await ensure_platform_accounts(db, roles)
+            if existing_admin.scalar_one_or_none() is not None:
+                await db.commit()
+                print("Platform administrator accounts verified successfully.")
+                return
 
+            # ── Permissions ──────────────────────────────────
             # ── Role-Permission Mapping ──────────────────────
             # Super Admin gets everything
-            for perm in permissions.values():
-                db.add(RolePermission(role_id=roles["super_admin"].id, permission_id=perm.id))
-
-            # Admin gets most things
-            for perm_key, perm in permissions.items():
-                if "delete" not in perm_key or "users" not in perm_key:
-                    db.add(RolePermission(role_id=roles["admin"].id, permission_id=perm.id))
-
-            await db.flush()
-
             # ── Super Admin User ─────────────────────────────
-            admin_user = User(
-                email="admin@innovera.com",
-                password_hash=hash_password("Admin@2026"),
-                first_name="System",
-                last_name="Administrator",
-                status="active",
-            )
-            db.add(admin_user)
-            await db.flush()
-            db.add(UserRole(user_id=admin_user.id, role_id=roles["super_admin"].id))
-
             # ── Demo Instructor ──────────────────────────────
             inst_user = User(
                 email="ahmed.hassan@innovera.com",
@@ -263,7 +303,8 @@ async def seed_database():
 
             await db.commit()
             print("Database seeded successfully with real AI Interns data!")
-            print("   Admin: admin@innovera.com / Admin@2026")
+            print("   Admin: admin@innovera.com / Admin1234")
+            print("   Super Admin: superadmin@innovera.com / Super1234")
             print("   Instructor: ahmed.hassan@innovera.com / Instructor@2026")
 
         except Exception as e:

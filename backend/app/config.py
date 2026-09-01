@@ -36,6 +36,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # One-time platform account bootstrap for serverless deployments.
+    # Passwords must be supplied through deployment environment variables.
+    PLATFORM_ACCOUNTS_BOOTSTRAP_ENABLED: bool = False
+    PLATFORM_ADMIN_EMAIL: str = ""
+    PLATFORM_ADMIN_PASSWORD: str = ""
+    PLATFORM_SUPER_ADMIN_EMAIL: str = ""
+    PLATFORM_SUPER_ADMIN_PASSWORD: str = ""
+
     # ── CORS ─────────────────────────────────────────────────────
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,*"
 

@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.core.middleware import setup_middleware
 from app.api.v1.router import api_v1_router
 from app.api.health import health_router
+from app.db.platform_bootstrap import bootstrap_platform_accounts
 from app.db.session import engine
 
 
@@ -21,6 +22,7 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """Application startup/shutdown lifecycle."""
     # Startup
+    await bootstrap_platform_accounts()
     yield
     # Shutdown
     await engine.dispose()
@@ -56,4 +58,3 @@ app.include_router(api_v1_router, prefix="/api/v1")
 @app.get("/api/v1")
 async def root_status():
     return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
-

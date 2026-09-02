@@ -138,14 +138,14 @@ const StudentDashboard: React.FC = () => {
 
   const classInfo = overview.current_enrollment ? getClassificationInfo(overview.current_enrollment.classification) : getClassificationInfo('');
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     setDownloadingPdf(true);
     try {
-      generateStudentPDFReport({
+      await generateStudentPDFReport({
         studentName: overview.student_name,
         studentCode: overview.student_code,
         courseTitle: overview.current_enrollment?.course_title || 'Internship Program Track',
-        overallScore: overview.current_enrollment?.overall_score || 100,
+        overallScore: overview.current_enrollment?.overall_score ?? 0,
         classification: classInfo.label,
         attendedDays: attendedLessons,
         totalDays: totalLessons,
@@ -160,7 +160,7 @@ const StudentDashboard: React.FC = () => {
       console.error('Failed to generate PDF report:', err);
       alert('Error generating PDF report. Please try again.');
     } finally {
-      setTimeout(() => setDownloadingPdf(false), 500);
+      setDownloadingPdf(false);
     }
   };
 

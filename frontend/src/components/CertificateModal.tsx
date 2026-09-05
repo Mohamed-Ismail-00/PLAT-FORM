@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Award, Download, FileText, Image as ImageIcon, X, Check, Calendar, User, Sparkles } from 'lucide-react';
-import { generateStudentCertificatePDF, generateStudentCertificatePNG, CERTIFICATE_TEMPLATE_B64 } from '../services/certificateGenerator';
+import { generateStudentCertificatePDF, generateStudentCertificatePNG, CERTIFICATE_TEMPLATE_B64, getCertificateDescription } from '../services/certificateGenerator';
 
 interface CertificateModalProps {
   isOpen: boolean;
@@ -21,6 +21,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const [name, setName] = useState(initialStudentName || 'Student Name');
   const [track, setTrack] = useState(initialCourseTitle || 'AI track');
   const [monthYear, setMonthYear] = useState('July 2026');
+  const [trainingPeriod, setTrainingPeriod] = useState('');
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [generatingPng, setGeneratingPng] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       setName(initialStudentName || 'Student Name');
       setTrack(initialCourseTitle || 'AI track');
       setMonthYear('July 2026');
+      setTrainingPeriod('');
       setToastMessage(null);
     }
   }, [isOpen, initialStudentName, initialCourseTitle]);
@@ -69,14 +71,16 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       // Draw Description
       ctx.fillStyle = '#14233C';
       ctx.font = 'bold 28px Georgia, serif';
-      const cleanTrack = track.trim().toLowerCase().endsWith('track') ? track.trim() : `${track.trim()} track`;
-      const desc1 = 'For completing an internship program for the';
-      const desc2 = `month of (${monthYear.trim() || 'July 2026'}) at Innovera in ${cleanTrack}`;
+      const [desc1, desc2] = getCertificateDescription({ courseTitle: track, monthYear, trainingPeriod });
+      if (trainingPeriod.trim()) {
+        const widestLine = Math.max(ctx.measureText(desc1).width, ctx.measureText(desc2).width);
+        ctx.font = `bold ${28 * Math.min(1, canvas.width * 0.84 / widestLine)}px Georgia, serif`;
+      }
 
       ctx.fillText(desc1, canvas.width / 2, canvas.height * 0.556);
       ctx.fillText(desc2, canvas.width / 2, canvas.height * 0.592);
     };
-  }, [isOpen, name, track, monthYear]);
+  }, [isOpen, name, track, monthYear, trainingPeriod]);
 
   if (!isOpen) return null;
 
@@ -88,6 +92,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         studentCode,
         courseTitle: track,
         monthYear,
+        trainingPeriod,
       });
       setToastMessage('Certificate PDF generated successfully!');
       setTimeout(() => setToastMessage(null), 3000);
@@ -107,6 +112,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         studentCode,
         courseTitle: track,
         monthYear,
+        trainingPeriod,
       });
       setToastMessage('Certificate Image (PNG) downloaded!');
       setTimeout(() => setToastMessage(null), 3000);
@@ -336,6 +342,29 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               />
             </div>
           </div>
+        <div>
+          <label htmlFor="certificate-training-period" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', marginBottom: '0.35rem' }}>
+            Custom Training Period (optional)
+          </label>
+          <input
+            id="certificate-training-period"
+            type="text"
+            value={trainingPeriod}
+            onChange={(e) => setTrainingPeriod(e.target.value)}
+            maxLength={120}
+            placeholder="e.g. for 2 months of July & August"
+            aria-describedby="certificate-training-period-help"
+            style={{
+              width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.375rem',
+              background: '#0F172A', border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#FFF', fontSize: '0.875rem',
+            }}
+          />
+          <p id="certificate-training-period-help" style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.4rem' }}>
+            Replaces the month wording in this certificate. Leave blank to use Completion Month.
+          </p>
+        </div>
+
         </div>
 
         {/* Modal Footer / Action Buttons */}

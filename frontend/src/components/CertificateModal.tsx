@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Award, Download, FileText, Image as ImageIcon, X, Check, Calendar, User, Sparkles } from 'lucide-react';
-import { generateStudentCertificatePDF, generateStudentCertificatePNG, CERTIFICATE_TEMPLATE_B64, getCertificateDescription } from '../services/certificateGenerator';
+import { Award, FileText, Image as ImageIcon, X, Check, Calendar, User } from 'lucide-react';
+import {
+  applyCourseCertificateApproval,
+  clearCourseCertificateApproval,
+  generateStudentCertificatePDF,
+  generateStudentCertificatePNG,
+  CERTIFICATE_TEMPLATE_B64,
+  getCertificateDescription,
+  getCourseDurationHours,
+  type CertificateType,
+} from '../services/certificateGenerator';
 
 interface CertificateModalProps {
   isOpen: boolean;
@@ -9,6 +18,7 @@ interface CertificateModalProps {
   studentName: string;
   studentCode?: string;
   courseTitle?: string;
+  certificateType?: CertificateType;
 }
 
 export const CertificateModal: React.FC<CertificateModalProps> = ({
@@ -17,9 +27,12 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   studentName: initialStudentName,
   studentCode = 'INV-2026',
   courseTitle: initialCourseTitle = 'AI track',
+  certificateType = 'internship',
 }) => {
+  const isCourseCertificate = certificateType === 'course';
   const [name, setName] = useState(initialStudentName || 'Student Name');
   const [track, setTrack] = useState(initialCourseTitle || 'AI track');
+  const [courseHours, setCourseHours] = useState(getCourseDurationHours(initialCourseTitle) ?? 40);
   const [monthYear, setMonthYear] = useState('July 2026');
   const [trainingPeriod, setTrainingPeriod] = useState('');
   const [generatingPdf, setGeneratingPdf] = useState(false);
@@ -33,11 +46,20 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     if (isOpen) {
       setName(initialStudentName || 'Student Name');
       setTrack(initialCourseTitle || 'AI track');
+      setCourseHours(getCourseDurationHours(initialCourseTitle) ?? 40);
       setMonthYear('July 2026');
       setTrainingPeriod('');
       setToastMessage(null);
     }
-  }, [isOpen, initialStudentName, initialCourseTitle]);
+  }, [isOpen, initialStudentName, initialCourseTitle, certificateType]);
+
+  const handleCourseTitleChange = (value: string) => {
+    setTrack(value);
+    if (isCourseCertificate) {
+      const mappedHours = getCourseDurationHours(value);
+      if (mappedHours) setCourseHours(mappedHours);
+    }
+  };
 
   // Live Canvas Preview
   useEffect(() => {
@@ -50,10 +72,19 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
     const img = new Image();
     img.src = CERTIFICATE_TEMPLATE_B64;
-    img.onload = () => {
+    img.onload = async () => {
       canvas.width = 1200;
       canvas.height = Math.round(1200 * (img.height / img.width));
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      if (isCourseCertificate) {
+        try {
+          await applyCourseCertificateApproval(ctx, canvas.width, canvas.height);
+        } catch (error) {
+          clearCourseCertificateApproval(ctx, canvas.width, canvas.height);
+          console.error('Failed to draw the course approval block:', error);
+        }
+      }
 
       // Draw Student Name
       ctx.fillStyle = '#004976';
@@ -71,8 +102,14 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       // Draw Description
       ctx.fillStyle = '#14233C';
       ctx.font = 'bold 28px Georgia, serif';
-      const [desc1, desc2] = getCertificateDescription({ courseTitle: track, monthYear, trainingPeriod });
-      if (trainingPeriod.trim()) {
+      const [desc1, desc2] = getCertificateDescription({
+        courseTitle: track,
+        monthYear,
+        trainingPeriod,
+        certificateType,
+        courseHours,
+      });
+      if (isCourseCertificate || trainingPeriod.trim()) {
         const widestLine = Math.max(ctx.measureText(desc1).width, ctx.measureText(desc2).width);
         ctx.font = `bold ${28 * Math.min(1, canvas.width * 0.84 / widestLine)}px Georgia, serif`;
       }
@@ -80,19 +117,21 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       ctx.fillText(desc1, canvas.width / 2, canvas.height * 0.556);
       ctx.fillText(desc2, canvas.width / 2, canvas.height * 0.592);
     };
-  }, [isOpen, name, track, monthYear, trainingPeriod]);
+  }, [isOpen, name, track, monthYear, trainingPeriod, certificateType, courseHours, isCourseCertificate]);
 
   if (!isOpen) return null;
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     setGeneratingPdf(true);
     try {
-      generateStudentCertificatePDF({
+      await generateStudentCertificatePDF({
         studentName: name,
         studentCode,
         courseTitle: track,
         monthYear,
         trainingPeriod,
+        certificateType,
+        courseHours,
       });
       setToastMessage('Certificate PDF generated successfully!');
       setTimeout(() => setToastMessage(null), 3000);
@@ -113,6 +152,8 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         courseTitle: track,
         monthYear,
         trainingPeriod,
+        certificateType,
+        courseHours,
       });
       setToastMessage('Certificate Image (PNG) downloaded!');
       setTimeout(() => setToastMessage(null), 3000);
@@ -189,7 +230,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 OFFICIAL RECOGNITION
               </span>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
-                Internship Certificate Generator
+                {isCourseCertificate ? 'Course Certificate Generator' : 'Internship Certificate Generator'}
               </h2>
             </div>
           </div>
@@ -265,7 +306,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.2fr 1fr 1fr',
+              gridTemplateColumns: '1.2fr 1fr 0.8fr',
               gap: '1rem',
               background: 'rgba(15, 23, 42, 0.6)',
               padding: '1rem 1.25rem',
@@ -276,7 +317,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', marginBottom: '0.35rem' }}>
                 <User size={13} />
-                <span>Intern Name</span>
+                <span>{isCourseCertificate ? 'Student Name' : 'Intern Name'}</span>
               </label>
               <input
                 type="text"
@@ -299,13 +340,13 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', marginBottom: '0.35rem' }}>
                 <Award size={13} />
-                <span>Track / Field</span>
+                <span>{isCourseCertificate ? 'Course Name' : 'Track / Field'}</span>
               </label>
               <input
                 type="text"
                 value={track}
-                onChange={(e) => setTrack(e.target.value)}
-                placeholder="e.g. AI track"
+                onChange={(e) => handleCourseTitleChange(e.target.value)}
+                placeholder={isCourseCertificate ? 'e.g. Game Dev' : 'e.g. AI track'}
                 style={{
                   width: '100%',
                   padding: '0.55rem 0.75rem',
@@ -319,6 +360,32 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               />
             </div>
 
+            {isCourseCertificate ? (
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', marginBottom: '0.35rem' }}>
+                <FileText size={13} />
+                <span>Training Hours</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={1000}
+                value={courseHours}
+                onChange={(e) => setCourseHours(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))}
+                aria-label="Course training hours"
+                style={{
+                  width: '100%',
+                  padding: '0.55rem 0.75rem',
+                  borderRadius: '0.375rem',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#FFF',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
+            ) : (
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', marginBottom: '0.35rem' }}>
                 <Calendar size={13} />
@@ -341,8 +408,9 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 }}
               />
             </div>
+            )}
           </div>
-        <div>
+        {!isCourseCertificate && <div>
           <label htmlFor="certificate-training-period" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', marginBottom: '0.35rem' }}>
             Custom Training Period (optional)
           </label>
@@ -363,7 +431,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           <p id="certificate-training-period-help" style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.4rem' }}>
             Replaces the month wording in this certificate. Leave blank to use Completion Month.
           </p>
-        </div>
+        </div>}
 
         </div>
 

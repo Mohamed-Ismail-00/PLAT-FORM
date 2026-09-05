@@ -68,7 +68,7 @@ function App() {
               } />
               <Route path="admin/students/:id" element={
                 <ProtectedRoute role="admin">
-                  <StudentDashboard />
+                  <StudentDashboard certificateType="course" />
                 </ProtectedRoute>
               } />
             </Route>

@@ -23,7 +23,11 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
 
-const StudentDashboard: React.FC = () => {
+interface StudentDashboardProps {
+  certificateType?: 'internship' | 'course';
+}
+
+const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = 'internship' }) => {
   const { id } = useParams();
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
@@ -239,7 +243,7 @@ const StudentDashboard: React.FC = () => {
                 boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
                 transition: 'all 0.2s ease',
               }}
-              title="Generate & Download Official Internship Certificate"
+              title={`Generate & Download Official ${certificateType === 'course' ? 'Course' : 'Internship'} Certificate`}
             >
               <Award size={15} />
               <span>Generate Certificate</span>
@@ -488,6 +492,7 @@ const StudentDashboard: React.FC = () => {
           studentName={overview?.student_name || 'Student Name'}
           studentCode={overview?.student_code || 'INV-2026'}
           courseTitle={overview?.current_enrollment?.course_title || 'AI track'}
+          certificateType={certificateType}
         />
       )}
 

@@ -7,6 +7,7 @@ import { AddStudentModal } from '../components/AddStudentModal';
 import { CertificateModal } from '../components/CertificateModal';
 import { Award } from 'lucide-react';
 import { MessageSquare, Plus, Trash2, Edit3, Eye, CheckCircle2 } from 'lucide-react';
+import { averageTaskRating, normalizeTaskRatings, TASK_RATING_MAX } from '../utils/taskRatings';
 
 const UsersList: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
@@ -71,6 +72,9 @@ const UsersList: React.FC = () => {
             total_tasks_count: updatedInfo.total_tasks_count,
             progress_percentage: updatedInfo.progress_percentage,
             feedback: updatedInfo.feedback,
+            email: updatedInfo.personal_email?.trim() || s.login_email || s.email,
+            personal_email: updatedInfo.personal_email?.trim() || null,
+            phone: updatedInfo.phone || null,
             tasks: updatedInfo.tasks || s.tasks || [],
           };
         }
@@ -211,14 +215,14 @@ const UsersList: React.FC = () => {
                 filteredStudents.map((student) => {
                   const attended = student.attended_lessons_count ?? 0;
                   const totalL = student.total_lessons_count ?? 10;
-                  const tasksList: TaskItem[] = Array.isArray(student.tasks) ? student.tasks : [];
+                  const tasksList: TaskItem[] = Array.isArray(student.tasks) ? student.tasks.map(normalizeTaskRatings) : [];
                   const completedT = tasksList.length > 0 ? tasksList.length : (student.completed_tasks_count ?? 0);
                   
                   const attPct = totalL > 0 ? Math.round((attended / totalL) * 100) : 0;
                   const avgTaskScore = tasksList.length > 0
-                    ? (tasksList.reduce((sum, t) => sum + ((t.communication_rating + t.quality_rating + t.teamwork_rating) / 3), 0) / tasksList.length).toFixed(1)
-                    : '5.0';
-                  const taskPerfPct = Math.round((Number(avgTaskScore) / 5) * 100);
+                    ? (tasksList.reduce((sum, task) => sum + averageTaskRating(task), 0) / tasksList.length).toFixed(1)
+                    : '0.0';
+                  const taskPerfPct = tasksList.length > 0 ? Math.round((Number(avgTaskScore) / TASK_RATING_MAX) * 100) : 0;
                   const overallPct = Math.round((attPct * 0.5) + (taskPerfPct * 0.5));
                   const isBeingDeleted = deletingId === student.id;
 
@@ -295,10 +299,10 @@ const UsersList: React.FC = () => {
                                 alignItems: 'center',
                                 gap: '0.25rem'
                               }}
-                              title={tasksList.map(t => `${t.title} (Comm: ${t.communication_rating}★, Qual: ${t.quality_rating}★, Team: ${t.teamwork_rating}★)`).join('\n')}
+                              title={tasksList.map(t => `${t.title} (Comm: ${t.communication_rating.toFixed(1)}/10, Qual: ${t.quality_rating.toFixed(1)}/10, Team: ${t.teamwork_rating.toFixed(1)}/10${t.note ? `, Note: ${t.note}` : ''})`).join('\n')}
                             >
                               <CheckCircle2 size={11} />
-                              <span>{tasksList.length} Evaluated (Avg: {avgTaskScore}★)</span>
+                              <span>{tasksList.length} Evaluated (Avg: {avgTaskScore}/{TASK_RATING_MAX})</span>
                             </span>
                           </div>
                         )}

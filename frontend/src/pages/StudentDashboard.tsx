@@ -18,6 +18,7 @@ import { EditStudentProgressModal, type TaskItem } from '../components/EditStude
 import { CertificateModal } from '../components/CertificateModal';
 import { Award } from 'lucide-react';
 import { generateStudentPDFReport } from '../services/pdfReportGenerator';
+import { averageTaskRating, normalizeTaskRatings, TASK_RATING_MAX } from '../utils/taskRatings';
 import { 
   ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
@@ -62,7 +63,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
         setCurrentFeedback(dashData.overview.feedback);
       }
       if (Array.isArray(dashData?.overview?.tasks)) {
-        setStudentTasks(dashData.overview.tasks);
+        setStudentTasks(dashData.overview.tasks.map(normalizeTaskRatings));
       }
     } catch (err) {
       console.error("Failed to fetch dashboard data, using fallback", err);
@@ -116,7 +117,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
   if (!data || !data.overview) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>No student data available.</div>;
 
   const { overview, attendance, scores, achievements } = data;
-  const tasksToDisplay: TaskItem[] = studentTasks.length > 0 ? studentTasks : (overview.tasks || []);
+  const rawTasksToDisplay: TaskItem[] = studentTasks.length > 0 ? studentTasks : (overview.tasks || []);
+  const tasksToDisplay: TaskItem[] = rawTasksToDisplay.map(normalizeTaskRatings);
   const completedTasksCount = tasksToDisplay.length > 0 ? tasksToDisplay.length : (overview.current_enrollment?.completed_tasks_count || 0);
 
   // Format data for radar chart (AI Score Profile)
@@ -325,7 +327,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
       )}
 
       {/* Intern Deliverables & Task Criteria Evaluation Breakdown */}
-      {tasksToDisplay.length > 0 && (
+      {certificateType === 'internship' && tasksToDisplay.length > 0 && (
         <Card style={{ borderLeft: '4px solid #A855F7' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -353,7 +355,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '0.85rem' }}>
             {tasksToDisplay.map((task, idx) => {
-              const avgScore = ((task.communication_rating + task.quality_rating + task.teamwork_rating) / 3).toFixed(1);
+              const avgScore = averageTaskRating(task).toFixed(1);
               return (
                 <div
                   key={task.id || idx}
@@ -404,24 +406,29 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem', marginTop: '0.25rem' }}>
                     <div style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '0.375rem', textAlign: 'center', border: '1px solid var(--border-color)' }}>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Comm</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38BDF8' }}>{task.communication_rating} / 5.0</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38BDF8' }}>{task.communication_rating.toFixed(1)} / {TASK_RATING_MAX}</div>
                     </div>
                     <div style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '0.375rem', textAlign: 'center', border: '1px solid var(--border-color)' }}>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Quality</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#A855F7' }}>{task.quality_rating} / 5.0</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#A855F7' }}>{task.quality_rating.toFixed(1)} / {TASK_RATING_MAX}</div>
                     </div>
                     <div style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '0.375rem', textAlign: 'center', border: '1px solid var(--border-color)' }}>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Team</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10B981' }}>{task.teamwork_rating} / 5.0</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10B981' }}>{task.teamwork_rating.toFixed(1)} / {TASK_RATING_MAX}</div>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.25rem', borderTop: '1px solid var(--border-color)' }}>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Overall Task Score:</span>
-                    <span style={{ fontSize: '0.825rem', fontWeight: 700, color: Number(avgScore) >= 4 ? '#10B981' : '#F59E0B' }}>
-                      {avgScore} / 5.0
+                    <span style={{ fontSize: '0.825rem', fontWeight: 700, color: Number(avgScore) >= 7 ? '#10B981' : '#F59E0B' }}>
+                      {avgScore} / {TASK_RATING_MAX}
                     </span>
                   </div>
+                  {task.note && (
+                    <div style={{ padding: '0.5rem 0.65rem', borderLeft: '3px solid #A855F7', borderRadius: '0.25rem', background: 'rgba(168, 85, 247, 0.08)', color: 'var(--text-muted)', fontSize: '0.75rem', lineHeight: 1.45 }}>
+                      <strong style={{ color: 'var(--text-main)' }}>Task Note:</strong> {task.note}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -513,7 +520,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
           initialTotalTasks={totalTasks}
           initialFeedback={overview?.feedback || currentFeedback || ''}
           initialTasks={tasksToDisplay}
-          isIntern={true}
+          isIntern={certificateType === 'internship'}
           onSuccess={(res) => {
             if (res?.feedback !== undefined) {
               setCurrentFeedback(res.feedback);

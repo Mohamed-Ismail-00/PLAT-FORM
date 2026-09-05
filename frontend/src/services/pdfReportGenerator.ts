@@ -1,9 +1,12 @@
 import { jsPDF } from 'jspdf';
+import { averageTaskRating, normalizeTaskRatings, TASK_RATING_MAX } from '../utils/taskRatings';
 
 export interface ReportTaskItem {
   id?: string;
   title: string;
   submission_link?: string;
+  note?: string;
+  rating_scale?: number;
   communication_rating: number;
   quality_rating: number;
   teamwork_rating: number;
@@ -296,11 +299,11 @@ export const generateStudentPDFReport = async (
     : data.totalDays > 0
       ? Math.round((data.attendedDays / data.totalDays) * 100)
       : 0;
-  const tasks = data.tasks ?? [];
+  const tasks = (data.tasks ?? []).map(normalizeTaskRatings);
   const tasksCount = tasks.length;
   const average = (key: 'communication_rating' | 'quality_rating' | 'teamwork_rating') => {
     if (tasksCount === 0) return null;
-    return tasks.reduce((sum, task) => sum + Number(task[key] ?? 5), 0) / tasksCount;
+    return tasks.reduce((sum, task) => sum + Number(task[key] ?? 0), 0) / tasksCount;
   };
   const averageCommunication = average('communication_rating');
   const averageQuality = average('quality_rating');
@@ -309,17 +312,17 @@ export const generateStudentPDFReport = async (
   const summaryValues = [
     `${data.attendedDays} / ${data.totalDays}`,
     `${tasksCount}`,
-    averageCommunication === null ? 'N/A' : `${averageCommunication.toFixed(1)} / 5.0`,
-    averageQuality === null ? 'N/A' : `${averageQuality.toFixed(1)} / 5.0`,
-    averageTeamwork === null ? 'N/A' : `${averageTeamwork.toFixed(1)} / 5.0`,
+    averageCommunication === null ? 'N/A' : `${averageCommunication.toFixed(1)} / ${TASK_RATING_MAX}.0`,
+    averageQuality === null ? 'N/A' : `${averageQuality.toFixed(1)} / ${TASK_RATING_MAX}.0`,
+    averageTeamwork === null ? 'N/A' : `${averageTeamwork.toFixed(1)} / ${TASK_RATING_MAX}.0`,
     `${data.overallScore ?? 0} / 100`,
   ];
   const summaryDetails = [
     `${attendanceRate}%`,
     'Deliverables',
-    averageCommunication === null ? 'Not evaluated' : `${Math.round((averageCommunication / 5) * 100)}%`,
-    averageQuality === null ? 'Not evaluated' : `${Math.round((averageQuality / 5) * 100)}%`,
-    averageTeamwork === null ? 'Not evaluated' : `${Math.round((averageTeamwork / 5) * 100)}%`,
+    averageCommunication === null ? 'Not evaluated' : `${Math.round((averageCommunication / TASK_RATING_MAX) * 100)}%`,
+    averageQuality === null ? 'Not evaluated' : `${Math.round((averageQuality / TASK_RATING_MAX) * 100)}%`,
+    averageTeamwork === null ? 'Not evaluated' : `${Math.round((averageTeamwork / TASK_RATING_MAX) * 100)}%`,
     cleanText(data.classification) || 'Active',
   ];
   const summaryCellWidth = contentWidth / 6;
@@ -409,7 +412,14 @@ export const generateStudentPDFReport = async (
       if (rawTitleLines.length > titleLines.length) {
         titleLines[titleLines.length - 1] = `${titleLines[titleLines.length - 1].replace(/[.\s]+$/, '')}...`;
       }
-      const rowHeight = Math.max(9, titleLines.length * 3.8 + 4);
+      const rawNoteLines = cleanText(task.note)
+        ? doc.splitTextToSize(`Note: ${cleanText(task.note)}`, columnWidths[1] - 6) as string[]
+        : [];
+      const noteLines = rawNoteLines.slice(0, 4);
+      if (rawNoteLines.length > noteLines.length && noteLines.length > 0) {
+        noteLines[noteLines.length - 1] = `${noteLines[noteLines.length - 1].replace(/[.\s]+$/, '')}...`;
+      }
+      const rowHeight = Math.max(9, titleLines.length * 3.8 + noteLines.length * 3.2 + 4);
 
       if (y + rowHeight > contentBottom) {
         doc.addPage();
@@ -435,17 +445,24 @@ export const generateStudentPDFReport = async (
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7.4);
       setTextColor(BLACK);
-      doc.text(titleLines, margin + columnWidths[0] + 3, y + 4.5);
+      const titleX = margin + columnWidths[0] + 3;
+      doc.text(titleLines, titleX, y + 4.5);
+      if (noteLines.length > 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.1);
+        setTextColor(MID_GRAY);
+        doc.text(noteLines, titleX, y + 4.5 + titleLines.length * 3.8);
+      }
 
-      const communication = Number(task.communication_rating ?? 5);
-      const quality = Number(task.quality_rating ?? 5);
-      const teamwork = Number(task.teamwork_rating ?? 5);
-      const taskScore = ((communication + quality + teamwork) / 3).toFixed(1);
+      const communication = Number(task.communication_rating ?? 0);
+      const quality = Number(task.quality_rating ?? 0);
+      const teamwork = Number(task.teamwork_rating ?? 0);
+      const taskScore = averageTaskRating(task).toFixed(1);
       const rowValues = [
-        `${communication.toFixed(1)} / 5.0`,
-        `${quality.toFixed(1)} / 5.0`,
-        `${teamwork.toFixed(1)} / 5.0`,
-        `${taskScore} / 5.0`,
+        `${communication.toFixed(1)} / ${TASK_RATING_MAX}.0`,
+        `${quality.toFixed(1)} / ${TASK_RATING_MAX}.0`,
+        `${teamwork.toFixed(1)} / ${TASK_RATING_MAX}.0`,
+        `${taskScore} / ${TASK_RATING_MAX}.0`,
       ];
 
       let valueX = margin + columnWidths[0] + columnWidths[1];

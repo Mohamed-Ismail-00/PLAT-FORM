@@ -61,13 +61,42 @@ export const clearCourseCertificateApproval = (
   canvasWidth: number,
   canvasHeight: number,
 ) => {
+  const scaleX = canvasWidth / 3000;
+  const scaleY = canvasHeight / 2118;
+
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(
-    500 * (canvasWidth / 3000),
-    1290 * (canvasHeight / 2118),
-    1950 * (canvasWidth / 3000),
-    550 * (canvasHeight / 2118),
+    500 * scaleX,
+    1290 * scaleY,
+    1950 * scaleX,
+    550 * scaleY,
   );
+  // The original template's oversized V extends below the approval row.
+  ctx.fillRect(
+    2400 * scaleX,
+    1510 * scaleY,
+    600 * scaleX,
+    535 * scaleY,
+  );
+
+  // Restore the certificate frame where the V used to overlap it.
+  ctx.strokeStyle = '#003F86';
+  ctx.lineWidth = 8 * Math.min(scaleX, scaleY);
+  ctx.beginPath();
+  ctx.moveTo(2400 * scaleX, 1908 * scaleY);
+  ctx.lineTo(2805 * scaleX, 1908 * scaleY);
+  ctx.moveTo(2785 * scaleX, 1510 * scaleY);
+  ctx.lineTo(2785 * scaleX, 1908 * scaleY);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#43BCC2';
+  ctx.lineWidth = 4 * Math.min(scaleX, scaleY);
+  ctx.beginPath();
+  ctx.moveTo(2400 * scaleX, 1955 * scaleY);
+  ctx.lineTo(2825 * scaleX, 1955 * scaleY);
+  ctx.moveTo(2825 * scaleX, 1510 * scaleY);
+  ctx.lineTo(2825 * scaleX, 1955 * scaleY);
+  ctx.stroke();
 };
 
 /**
@@ -90,20 +119,20 @@ export const applyCourseCertificateApproval = async (
   ctx.drawImage(
     approvalsImage,
     35, 20, 560, 235,
-    850 * scaleX, 1360 * scaleY, 700 * scaleX, 294 * scaleY,
+    2220 * scaleX, 1600 * scaleY, 560 * scaleX, 235 * scaleY,
   );
 
   ctx.fillStyle = '#0B2545';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `600 ${42 * Math.min(scaleX, scaleY)}px Arial, "Segoe UI", sans-serif`;
-  ctx.fillText('Head of Innovera Academy', 1200 * scaleX, 1712 * scaleY);
+  ctx.font = `600 ${36 * Math.min(scaleX, scaleY)}px Arial, "Segoe UI", sans-serif`;
+  ctx.fillText('Head of Innovera Academy', 2500 * scaleX, 1872 * scaleY);
 
   // Keep the Academy seal and intentionally exclude Abdelrahman's block.
   ctx.drawImage(
     approvalsImage,
     730, 90, 480, 390,
-    1650 * scaleX, 1350 * scaleY, 420 * scaleX, 341 * scaleY,
+    2350 * scaleX, 1320 * scaleY, 300 * scaleX, 244 * scaleY,
   );
   ctx.restore();
 };

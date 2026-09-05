@@ -20,14 +20,17 @@ import {
   X,
   Sparkles
 } from 'lucide-react';
+import { averageTaskRating, normalizeTaskRatings, TASK_RATING_MAX } from '../utils/taskRatings';
 
 export type TaskItem = {
   id?: string;
   title: string;
   submission_link?: string;
-  communication_rating: number; // 1 to 5
-  quality_rating: number; // 1 to 5
-  teamwork_rating: number; // 1 to 5
+  note?: string;
+  rating_scale?: number;
+  communication_rating: number; // 0 to 10
+  quality_rating: number; // 0 to 10
+  teamwork_rating: number; // 0 to 10
   created_at?: string;
 };
 
@@ -35,6 +38,8 @@ export interface ITaskItem {
   id?: string;
   title: string;
   submission_link?: string;
+  note?: string;
+  rating_scale?: number;
   communication_rating: number;
   quality_rating: number;
   teamwork_rating: number;
@@ -110,17 +115,19 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   const [isAddingTask, setIsAddingTask] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>('');
   const [newLink, setNewLink] = useState<string>('');
-  const [newComm, setNewComm] = useState<number>(5);
-  const [newQuality, setNewQuality] = useState<number>(5);
-  const [newTeam, setNewTeam] = useState<number>(5);
+  const [newNote, setNewNote] = useState<string>('');
+  const [newComm, setNewComm] = useState<number>(0);
+  const [newQuality, setNewQuality] = useState<number>(0);
+  const [newTeam, setNewTeam] = useState<number>(0);
 
   // Editing existing task state (index of the task being edited)
   const [editingTaskIndex, setEditingTaskIndex] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState<string>('');
   const [editLink, setEditLink] = useState<string>('');
-  const [editComm, setEditComm] = useState<number>(5);
-  const [editQuality, setEditQuality] = useState<number>(5);
-  const [editTeam, setEditTeam] = useState<number>(5);
+  const [editNote, setEditNote] = useState<string>('');
+  const [editComm, setEditComm] = useState<number>(0);
+  const [editQuality, setEditQuality] = useState<number>(0);
+  const [editTeam, setEditTeam] = useState<number>(0);
 
   // Sync state when props change or when modal opens
   useEffect(() => {
@@ -136,7 +143,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
       setCompletedTasksCount(initialCompletedTasks ?? 0);
       setTotalTasks(initialTotalTasks || 10);
       setFeedback(initialFeedback || '');
-      setTasks(Array.isArray(initialTasks) ? [...initialTasks] : []);
+      setTasks(Array.isArray(initialTasks) ? initialTasks.map(normalizeTaskRatings) : []);
       setIsAddingTask(false);
       setEditingTaskIndex(null);
       setToastMessage(null);
@@ -149,11 +156,11 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   
   // Calculate average rating of tasks
   const avgTaskScore = tasks.length > 0
-    ? (tasks.reduce((sum, t) => sum + ((t.communication_rating + t.quality_rating + t.teamwork_rating) / 3), 0) / tasks.length).toFixed(1)
-    : '5.0';
+    ? (tasks.reduce((sum, task) => sum + averageTaskRating(task), 0) / tasks.length).toFixed(1)
+    : '0.0';
 
   // For overall estimate: attendance (50%) + task performance (50%)
-  const taskPerformancePct = Math.round((Number(avgTaskScore) / 5) * 100);
+  const taskPerformancePct = tasks.length > 0 ? Math.round((Number(avgTaskScore) / TASK_RATING_MAX) * 100) : 0;
   const estimatedOverall = Math.round((attendancePct * 0.5) + (taskPerformancePct * 0.5));
 
   const handleApplyTemplate = (templateText: string) => {
@@ -174,6 +181,8 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
       id: `task-${Date.now()}`,
       title: newTitle.trim(),
       submission_link: newLink.trim() || undefined,
+      note: newNote.trim() || undefined,
+      rating_scale: TASK_RATING_MAX,
       communication_rating: newComm,
       quality_rating: newQuality,
       teamwork_rating: newTeam,
@@ -183,9 +192,10 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
     setTasks((prev) => [...prev, newTask]);
     setNewTitle('');
     setNewLink('');
-    setNewComm(5);
-    setNewQuality(5);
-    setNewTeam(5);
+    setNewNote('');
+    setNewComm(0);
+    setNewQuality(0);
+    setNewTeam(0);
     setIsAddingTask(false);
   };
 
@@ -195,9 +205,10 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
     setEditingTaskIndex(index);
     setEditTitle(task.title || '');
     setEditLink(task.submission_link || '');
-    setEditComm(task.communication_rating || 5);
-    setEditQuality(task.quality_rating || 5);
-    setEditTeam(task.teamwork_rating || 5);
+    setEditNote(task.note || '');
+    setEditComm(task.communication_rating ?? 0);
+    setEditQuality(task.quality_rating ?? 0);
+    setEditTeam(task.teamwork_rating ?? 0);
   };
 
   const handleSaveEditTask = () => {
@@ -213,6 +224,8 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
         ...updated[editingTaskIndex],
         title: editTitle.trim(),
         submission_link: editLink.trim() || undefined,
+        note: editNote.trim() || undefined,
+        rating_scale: TASK_RATING_MAX,
         communication_rating: editComm,
         quality_rating: editQuality,
         teamwork_rating: editTeam,
@@ -539,7 +552,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                     <span>Intern Tasks & Deliverables ({tasks.length} Saved)</span>
                   </label>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                    Create, edit, or delete submitted deliverables and update Communication, Quality & Teamwork ratings.
+                    Create, edit, or delete submitted deliverables, add task notes, and assign Communication, Quality & Teamwork scores out of 10.
                   </p>
                 </div>
                 {!isAddingTask && (
@@ -621,6 +634,21 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                   </div>
 
                   <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      Task Note / Feedback <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Optional)</span>
+                    </label>
+                    <textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value.slice(0, 1000))}
+                      placeholder="Add specific feedback or observations for this task..."
+                      rows={3}
+                      maxLength={1000}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.375rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                    />
+                    <div style={{ textAlign: 'right', fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{newNote.length}/1000</div>
+                  </div>
+
+                  <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                       <LinkIcon size={12} />
                       <span>Submission Link (GitHub / Figma / Drive)</span>
@@ -643,7 +671,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                     />
                   </div>
 
-                  {/* 3 Criteria Ratings */}
+                  {/* 3 Numeric Criteria Ratings */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginTop: '0.25rem' }}>
                     <CriteriaRating
                       label="Communication"
@@ -706,7 +734,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   {tasks.map((task, idx) => {
                     const isEditing = editingTaskIndex === idx;
-                    const taskAvg = ((task.communication_rating + task.quality_rating + task.teamwork_rating) / 3).toFixed(1);
+                    const taskAvg = averageTaskRating(task).toFixed(1);
 
                     if (isEditing) {
                       return (
@@ -758,6 +786,21 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                           </div>
 
                           <div>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                              Task Note / Feedback <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Optional)</span>
+                            </label>
+                            <textarea
+                              value={editNote}
+                              onChange={(e) => setEditNote(e.target.value.slice(0, 1000))}
+                              placeholder="Add specific feedback or observations for this task..."
+                              rows={3}
+                              maxLength={1000}
+                              style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.375rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                            />
+                            <div style={{ textAlign: 'right', fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{editNote.length}/1000</div>
+                          </div>
+
+                          <div>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                               <LinkIcon size={12} />
                               <span>Submission Link</span>
@@ -779,7 +822,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                             />
                           </div>
 
-                          {/* 3 Criteria Ratings */}
+                          {/* 3 Numeric Criteria Ratings */}
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                             <CriteriaRating
                               label="Communication"
@@ -884,12 +927,18 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                             )}
                           </div>
 
+                          {task.note && (
+                            <div style={{ marginTop: '0.35rem', padding: '0.5rem 0.65rem', borderLeft: '3px solid #A855F7', borderRadius: '0.25rem', background: 'rgba(168, 85, 247, 0.08)', color: 'var(--text-muted)', fontSize: '0.75rem', lineHeight: 1.45 }}>
+                              <strong style={{ color: 'var(--text-main)' }}>Task Note:</strong> {task.note}
+                            </div>
+                          )}
+
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            <span>Comm: <b style={{ color: '#38BDF8' }}>{task.communication_rating}★</b></span>
-                            <span>Quality: <b style={{ color: '#A855F7' }}>{task.quality_rating}★</b></span>
-                            <span>Team: <b style={{ color: '#10B981' }}>{task.teamwork_rating}★</b></span>
-                            <span style={{ marginLeft: 'auto', fontWeight: 700, color: Number(taskAvg) >= 4 ? '#10B981' : '#F59E0B' }}>
-                              Score: {taskAvg} / 5.0
+                            <span>Comm: <b style={{ color: '#38BDF8' }}>{task.communication_rating.toFixed(1)} / 10</b></span>
+                            <span>Quality: <b style={{ color: '#A855F7' }}>{task.quality_rating.toFixed(1)} / 10</b></span>
+                            <span>Team: <b style={{ color: '#10B981' }}>{task.teamwork_rating.toFixed(1)} / 10</b></span>
+                            <span style={{ marginLeft: 'auto', fontWeight: 700, color: Number(taskAvg) >= 7 ? '#10B981' : '#F59E0B' }}>
+                              Score: {taskAvg} / 10
                             </span>
                           </div>
                         </div>
@@ -1122,8 +1171,24 @@ const CriteriaRating: React.FC<{
         {icon}
         <span>{label}</span>
       </div>
-      <div style={{ display: 'flex', gap: '0.2rem' }}>
-        {[1, 2, 3, 4, 5].map((star) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <input
+          type="number"
+          min={0}
+          max={TASK_RATING_MAX}
+          step={0.5}
+          value={value}
+          onChange={(event) => {
+            const parsed = Number(event.target.value);
+            onChange(Number.isFinite(parsed) ? Math.min(TASK_RATING_MAX, Math.max(0, parsed)) : 0);
+          }}
+          aria-label={`${label} score out of 10`}
+          style={{ width: '100%', minWidth: 0, padding: '0.45rem 0.55rem', borderRadius: '0.375rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 600, outline: 'none' }}
+        />
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>/ 10</span>
+      </div>
+      <div style={{ display: 'none' }}>
+        {([] as number[]).map((star) => (
           <button
             key={star}
             type="button"

@@ -22,6 +22,22 @@ from app.schemas.user import QuickAddStudentRequest
 router = APIRouter(prefix="/students", tags=["Students"])
 
 
+def _serialize_task(task) -> dict:
+    """Persist task evaluations in the current ten-point format.
+
+    Tasks created before the ten-point scale have no rating_scale marker and
+    are converted exactly once when an admin saves the student's progress.
+    """
+    payload = task.model_dump() if hasattr(task, "model_dump") else task.dict()
+    if payload.get("rating_scale") != 10:
+        for field in ("communication_rating", "quality_rating", "teamwork_rating"):
+            payload[field] = min(10.0, max(0.0, float(payload.get(field) or 0) * 2))
+    payload["rating_scale"] = 10
+    if payload.get("note"):
+        payload["note"] = payload["note"].strip()
+    return payload
+
+
 @router.get("")
 async def list_students(
     db: DBSession,
@@ -59,11 +75,20 @@ async def list_students(
                 enrollment = s.enrollments[0]
                 track_name = enrollment.course.title if enrollment.course else ""
 
-        feedback = (s.metadata_ or {}).get("feedback") if hasattr(s, "metadata_") and s.metadata_ else None
+        metadata = s.metadata_ if hasattr(s, "metadata_") and s.metadata_ else {}
+        personal_email = (metadata.get("personal_email") or "").strip()
+        login_email = s.user.email if s.user else ""
         items.append({
             "id": str(s.id), "student_code": s.student_code,
             "full_name": s.user.full_name if s.user else "",
-            "email": s.user.email if s.user else "",
+            # The email shown in the admin lists is the contact email entered
+            # for the student, falling back to the generated login email.
+            "email": personal_email or login_email,
+            "login_email": login_email,
+            "personal_email": personal_email or None,
+            "first_name": s.user.first_name if s.user else "",
+            "last_name": s.user.last_name if s.user else "",
+            "phone": s.user.phone if s.user else None,
             "status": s.user.status if s.user else "",
             "track_name": track_name,
             "education_level": s.education_level,
@@ -72,8 +97,8 @@ async def list_students(
             "completed_tasks_count": enrollment.completed_tasks_count if enrollment else 0,
             "total_tasks_count": enrollment.total_tasks_count if enrollment else 12,
             "progress_percentage": enrollment.progress_percentage if enrollment else 0,
-            "feedback": feedback,
-            "tasks": (s.metadata_ or {}).get("tasks", []) if hasattr(s, "metadata_") and s.metadata_ else [],
+            "feedback": metadata.get("feedback"),
+            "tasks": metadata.get("tasks", []),
             "created_at": s.created_at.isoformat() if s.created_at else None,
         })
 
@@ -96,7 +121,9 @@ async def get_student(student_id: UUID, db: DBSession, current_user: CurrentUser
         "id": str(student.id), "user_id": str(student.user_id),
         "student_code": student.student_code,
         "full_name": student.user.full_name if student.user else "",
-        "email": student.user.email if student.user else "",
+        "email": (student.metadata_ or {}).get("personal_email") or (student.user.email if student.user else ""),
+        "login_email": student.user.email if student.user else "",
+        "personal_email": (student.metadata_ or {}).get("personal_email") or None,
         "phone": student.user.phone if student.user else None,
         "education_level": student.education_level,
         "date_of_birth": student.date_of_birth.isoformat() if student.date_of_birth else None,
@@ -154,7 +181,7 @@ async def update_student_progress(
             meta["feedback"] = data.feedback
             meta["feedback_updated_at"] = datetime.now(timezone.utc).isoformat()
         if data.tasks is not None:
-            meta["tasks"] = [t.model_dump() if hasattr(t, "model_dump") else t.dict() for t in data.tasks]
+            meta["tasks"] = [_serialize_task(task) for task in data.tasks]
             enrollment.completed_tasks_count = len(data.tasks)
             # Recompute task percentage
             task_pct = (enrollment.completed_tasks_count / enrollment.total_tasks_count * 100) if enrollment.total_tasks_count > 0 else 0
@@ -183,6 +210,9 @@ async def update_student_progress(
         "progress_percentage": enrollment.progress_percentage,
         "feedback": (student.metadata_ or {}).get("feedback") if student else data.feedback,
         "tasks": (student.metadata_ or {}).get("tasks", []) if student else (data.tasks or []),
+        "personal_email": (student.metadata_ or {}).get("personal_email") or None if student else (data.personal_email or None),
+        "email": ((student.metadata_ or {}).get("personal_email") or (student.user.email if student.user else "")) if student else (data.personal_email or ""),
+        "phone": student.user.phone if student and student.user else None,
         "scoring": res,
     })
 

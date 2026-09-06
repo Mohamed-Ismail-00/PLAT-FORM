@@ -9,7 +9,7 @@ from typing import Optional
 from sqlalchemy import DateTime, Float, ForeignKey, Index, String, UniqueConstraint, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.constants import EnrollmentStatus
+from app.core.constants import BatchName, EnrollmentStatus
 from app.models.base import Base, UUIDMixin
 
 
@@ -23,6 +23,12 @@ class Enrollment(Base, UUIDMixin):
     )
     course_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False,
+    )
+    batch_name: Mapped[str] = mapped_column(
+        String(20),
+        default=BatchName.BATCH_1.value,
+        server_default=BatchName.BATCH_1.value,
+        nullable=False,
     )
     status: Mapped[str] = mapped_column(String(20), default=EnrollmentStatus.ACTIVE.value)
     progress_percentage: Mapped[float] = mapped_column(Float, default=0.0)

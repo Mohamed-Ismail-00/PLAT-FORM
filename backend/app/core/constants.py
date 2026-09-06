@@ -48,6 +48,13 @@ class EnrollmentStatus(str, Enum):
     PAUSED = "paused"
 
 
+class BatchName(str, Enum):
+    """Supported intern cohorts within a track."""
+
+    BATCH_1 = "BATCH 1"
+    BATCH_2 = "BATCH 2"
+
+
 # ── Lesson ──────────────────────────────────────────────────────
 
 class LessonType(str, Enum):

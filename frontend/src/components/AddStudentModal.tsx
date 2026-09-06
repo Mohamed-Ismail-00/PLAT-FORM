@@ -8,6 +8,7 @@ interface AddStudentModalProps {
   onClose: () => void;
   trackName: string;
   courseId: string;
+  batchName: 'BATCH 1' | 'BATCH 2';
   onSuccess: () => void;
 }
 
@@ -16,6 +17,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
   onClose,
   trackName,
   courseId,
+  batchName,
   onSuccess,
 }) => {
   const [firstName, setFirstName] = useState('');
@@ -59,6 +61,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         course_id: courseId,
+        batch_name: batchName,
       };
       if (personalEmail.trim()) {
         payload.personal_email = personalEmail.trim();
@@ -241,6 +244,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
             <div>
               <div style={{ fontSize: '0.7rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enrolling to Track</div>
               <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#38BDF8' }}>{trackName}</div>
+              <div style={{ fontSize: '0.72rem', color: '#A78BFA', marginTop: '0.15rem', fontWeight: 700 }}>{batchName}</div>
             </div>
           </div>
 

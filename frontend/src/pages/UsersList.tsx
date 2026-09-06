@@ -9,11 +9,15 @@ import { Award } from 'lucide-react';
 import { MessageSquare, Plus, Trash2, Edit3, Eye, CheckCircle2 } from 'lucide-react';
 import { averageTaskRating, normalizeTaskRatings, TASK_RATING_MAX } from '../utils/taskRatings';
 
+type InternBatch = 'BATCH 1' | 'BATCH 2';
+const INTERN_BATCHES: InternBatch[] = ['BATCH 1', 'BATCH 2'];
+
 const UsersList: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState<string>('All');
+  const [selectedBatch, setSelectedBatch] = useState<InternBatch>('BATCH 1');
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
   const [certStudent, setCertStudent] = useState<any | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -54,9 +58,12 @@ const UsersList: React.FC = () => {
     ? tracks 
     : ['All', ...Array.from(new Set(students.map(s => s.track_name).filter(Boolean)))];
 
-  const filteredStudents = selectedTrack === 'All' 
-    ? students 
-    : students.filter(s => s.track_name?.toLowerCase().includes(selectedTrack.toLowerCase()) || s.track_name === selectedTrack);
+  const filteredStudents = selectedTrack === 'All'
+    ? students
+    : students.filter(s =>
+      (s.track_name?.toLowerCase().includes(selectedTrack.toLowerCase()) || s.track_name === selectedTrack)
+      && (s.batch_name || 'BATCH 1') === selectedBatch,
+    );
 
   const selectedCourse = courses.find(c => c.title === selectedTrack);
 
@@ -71,6 +78,7 @@ const UsersList: React.FC = () => {
             completed_tasks_count: updatedInfo.completed_tasks_count,
             total_tasks_count: updatedInfo.total_tasks_count,
             progress_percentage: updatedInfo.progress_percentage,
+            batch_name: updatedInfo.batch_name || s.batch_name || 'BATCH 1',
             feedback: updatedInfo.feedback,
             email: updatedInfo.personal_email?.trim() || s.login_email || s.email,
             personal_email: updatedInfo.personal_email?.trim() || null,
@@ -141,7 +149,8 @@ const UsersList: React.FC = () => {
 
       {/* Track Filter Tabs + Add Student Button */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-        <div className="flex flex-wrap gap-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="flex flex-wrap gap-2">
           {effectiveTracks.map((track) => {
             const count = track === 'All' 
               ? students.length 
@@ -151,7 +160,10 @@ const UsersList: React.FC = () => {
             return (
               <button
                 key={track}
-                onClick={() => setSelectedTrack(track)}
+                onClick={() => {
+                  setSelectedTrack(track);
+                  if (track !== 'All') setSelectedBatch('BATCH 1');
+                }}
                 style={{
                   padding: '0.5rem 1rem',
                   borderRadius: '0.5rem',
@@ -169,6 +181,29 @@ const UsersList: React.FC = () => {
               </button>
             );
           })}
+          </div>
+
+          {selectedTrack !== 'All' && selectedCourse && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Select Batch:</span>
+              {INTERN_BATCHES.map((batch) => {
+                const count = students.filter((student) =>
+                  (student.track_name?.toLowerCase().includes(selectedTrack.toLowerCase()) || student.track_name === selectedTrack)
+                  && (student.batch_name || 'BATCH 1') === batch,
+                ).length;
+                const isActive = selectedBatch === batch;
+                return (
+                  <button
+                    key={batch}
+                    onClick={() => setSelectedBatch(batch)}
+                    style={{ padding: '0.35rem 0.75rem', borderRadius: '0.4rem', border: `1px solid ${isActive ? '#38BDF8' : 'var(--border-color)'}`, background: isActive ? 'rgba(56, 189, 248, 0.14)' : 'var(--bg-card)', color: isActive ? '#38BDF8' : 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                  >
+                    {batch} <span style={{ opacity: 0.75 }}>({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {selectedTrack !== 'All' && selectedCourse && (
@@ -191,7 +226,7 @@ const UsersList: React.FC = () => {
             }}
           >
             <Plus size={16} />
-            <span>Add Student to {selectedTrack}</span>
+            <span>Add Student to {selectedTrack} · {selectedBatch}</span>
           </button>
         )}
       </div>
@@ -204,6 +239,7 @@ const UsersList: React.FC = () => {
                 <th style={{ padding: '0.875rem 1rem' }}>Student Name & Feedback</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Code</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Track</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Batch</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Days Attended</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Tasks Completed</th>
                 <th style={{ padding: '0.875rem 1rem' }}>Overall Progress</th>
@@ -276,6 +312,11 @@ const UsersList: React.FC = () => {
                           border: '1px solid rgba(56, 189, 248, 0.2)'
                         }}>
                           {student.track_name || 'General Track'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ backgroundColor: 'rgba(167, 139, 250, 0.12)', color: '#A78BFA', padding: '0.25rem 0.625rem', borderRadius: '0.375rem', fontSize: '0.78rem', fontWeight: 700, border: '1px solid rgba(167, 139, 250, 0.2)' }}>
+                          {student.batch_name || 'BATCH 1'}
                         </span>
                       </td>
                       <td style={{ padding: '1rem', color: 'var(--text-main)', fontWeight: 500 }}>
@@ -380,8 +421,8 @@ const UsersList: React.FC = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No students found for track "{selectedTrack}".
+                  <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No students found for {selectedTrack === 'All' ? 'the selected filters' : `${selectedTrack} · ${selectedBatch}`}.
                   </td>
                 </tr>
               )}
@@ -407,11 +448,13 @@ const UsersList: React.FC = () => {
           isOpen={!!editingStudent}
           onClose={() => setEditingStudent(null)}
           studentId={editingStudent.id}
+          enrollmentId={editingStudent.enrollment_id}
           studentName={editingStudent.full_name}
           initialFirstName={editingStudent.first_name || (editingStudent.full_name?.split(' ')[0] || '')}
           initialLastName={editingStudent.last_name || (editingStudent.full_name?.split(' ').slice(1).join(' ') || '')}
           initialPhone={editingStudent.phone || ''}
           initialPersonalEmail={editingStudent.personal_email || ''}
+          initialBatch={editingStudent.batch_name || 'BATCH 1'}
           initialAttended={editingStudent.attended_lessons_count ?? 0}
           initialTotalLessons={editingStudent.total_lessons_count ?? 10}
           initialCompletedTasks={editingStudent.completed_tasks_count ?? (Array.isArray(editingStudent.tasks) ? editingStudent.tasks.length : 0)}
@@ -430,6 +473,7 @@ const UsersList: React.FC = () => {
           onClose={() => setShowAddModal(false)}
           trackName={selectedTrack}
           courseId={selectedCourse.id}
+          batchName={selectedBatch}
           onSuccess={() => {
             fetchStudents();
           }}

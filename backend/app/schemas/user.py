@@ -7,6 +7,7 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from app.core.constants import BatchName
 
 
 # ── User Schemas ─────────────────────────────────────────────────
@@ -73,6 +74,7 @@ class QuickAddStudentRequest(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     course_id: UUID
+    batch_name: BatchName = BatchName.BATCH_1
     personal_email: Optional[str] = Field(None, max_length=255)
     phone: Optional[str] = Field(None, max_length=20)
 

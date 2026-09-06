@@ -7,16 +7,19 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from app.core.constants import BatchName
 
 
 class EnrollmentCreate(BaseModel):
     student_id: UUID
     course_id: UUID
+    batch_name: BatchName = BatchName.BATCH_1
 
 
 class EnrollmentUpdate(BaseModel):
     status: Optional[str] = None
     progress_percentage: Optional[float] = Field(None, ge=0, le=100)
+    batch_name: Optional[BatchName] = None
 
 
 class TaskItem(BaseModel):
@@ -34,6 +37,7 @@ class TaskItem(BaseModel):
 
 
 class StudentProgressUpdate(BaseModel):
+    enrollment_id: Optional[UUID] = None
     attended_lessons_count: int = Field(..., ge=0)
     total_lessons_count: int = Field(10, ge=1)
     completed_tasks_count: int = Field(..., ge=0)
@@ -45,12 +49,14 @@ class StudentProgressUpdate(BaseModel):
     phone: Optional[str] = None
     personal_email: Optional[str] = None
     email: Optional[str] = None
+    batch_name: Optional[BatchName] = None
 
 
 class EnrollmentResponse(BaseModel):
     id: UUID
     student_id: UUID
     course_id: UUID
+    batch_name: str = BatchName.BATCH_1.value
     status: str
     progress_percentage: float
     enrolled_at: datetime

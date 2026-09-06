@@ -50,6 +50,7 @@ interface EditStudentProgressModalProps {
   isOpen: boolean;
   onClose: () => void;
   studentId: string;
+  enrollmentId?: string;
   studentName: string;
   initialFirstName?: string;
   initialLastName?: string;
@@ -61,6 +62,7 @@ interface EditStudentProgressModalProps {
   initialTotalTasks?: number;
   initialFeedback?: string;
   initialTasks?: TaskItem[];
+  initialBatch?: 'BATCH 1' | 'BATCH 2';
   isIntern?: boolean;
   onSuccess: (updatedInfo?: any) => void;
 }
@@ -77,6 +79,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   isOpen,
   onClose,
   studentId,
+  enrollmentId,
   studentName,
   initialFirstName = '',
   initialLastName = '',
@@ -88,6 +91,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   initialTotalTasks = 10,
   initialFeedback = '',
   initialTasks = [],
+  initialBatch = 'BATCH 1',
   isIntern = true,
   onSuccess,
 }) => {
@@ -107,6 +111,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   const [completedTasksCount, setCompletedTasksCount] = useState<number>(initialCompletedTasks);
   const [totalTasks, setTotalTasks] = useState<number>(initialTotalTasks || 10);
   const [feedback, setFeedback] = useState<string>(initialFeedback || '');
+  const [batchName, setBatchName] = useState<'BATCH 1' | 'BATCH 2'>(initialBatch);
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks || []);
   const [saving, setSaving] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -143,12 +148,13 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
       setCompletedTasksCount(initialCompletedTasks ?? 0);
       setTotalTasks(initialTotalTasks || 10);
       setFeedback(initialFeedback || '');
+      setBatchName(initialBatch || 'BATCH 1');
       setTasks(Array.isArray(initialTasks) ? initialTasks.map(normalizeTaskRatings) : []);
       setIsAddingTask(false);
       setEditingTaskIndex(null);
       setToastMessage(null);
     }
-  }, [isOpen, studentId, studentName, initialFirstName, initialLastName, initialPhone, initialPersonalEmail, initialAttended, initialTotalLessons, initialCompletedTasks, initialTotalTasks, initialFeedback, initialTasks]);
+  }, [isOpen, studentId, studentName, initialFirstName, initialLastName, initialPhone, initialPersonalEmail, initialAttended, initialTotalLessons, initialCompletedTasks, initialTotalTasks, initialFeedback, initialTasks, initialBatch]);
 
   if (!isOpen) return null;
 
@@ -253,10 +259,12 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
     setToastMessage(null);
 
     const payload: any = {
+      enrollment_id: enrollmentId,
       attended_lessons_count: attended,
       total_lessons_count: totalLessons,
       completed_tasks_count: isIntern ? tasks.length : completedTasksCount,
       total_tasks_count: isIntern ? Math.max(tasks.length, 1) : totalTasks,
+      batch_name: isIntern ? batchName : undefined,
       feedback: feedback.trim(),
       tasks: isIntern ? tasks : undefined,
       first_name: firstName.trim(),
@@ -281,6 +289,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
           total_lessons_count: totalLessons,
           completed_tasks_count: isIntern ? tasks.length : completedTasksCount,
           total_tasks_count: isIntern ? Math.max(tasks.length, 1) : totalTasks,
+          batch_name: isIntern ? batchName : undefined,
           progress_percentage: estimatedOverall,
           feedback: feedback.trim(),
           tasks: isIntern ? tasks : undefined,
@@ -555,6 +564,19 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                     Create, edit, or delete submitted deliverables, add task notes, and assign Communication, Quality & Teamwork scores out of 10.
                   </p>
                 </div>
+                {isIntern && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                    <span>Batch</span>
+                    <select
+                      value={batchName}
+                      onChange={(event) => setBatchName(event.target.value as 'BATCH 1' | 'BATCH 2')}
+                      style={{ padding: '0.4rem 0.55rem', borderRadius: '0.4rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
+                    >
+                      <option value="BATCH 1">BATCH 1</option>
+                      <option value="BATCH 2">BATCH 2</option>
+                    </select>
+                  </label>
+                )}
                 {!isAddingTask && (
                   <button
                     type="button"

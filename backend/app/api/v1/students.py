@@ -92,11 +92,13 @@ async def list_students(
             "status": s.user.status if s.user else "",
             "track_name": track_name,
             "education_level": s.education_level,
+            "enrollment_id": str(enrollment.id) if enrollment else None,
             "attended_lessons_count": enrollment.attended_lessons_count if enrollment else 0,
             "total_lessons_count": enrollment.total_lessons_count if enrollment else 10,
             "completed_tasks_count": enrollment.completed_tasks_count if enrollment else 0,
             "total_tasks_count": enrollment.total_tasks_count if enrollment else 12,
             "progress_percentage": enrollment.progress_percentage if enrollment else 0,
+            "batch_name": getattr(enrollment, "batch_name", "BATCH 1") if enrollment else "BATCH 1",
             "feedback": metadata.get("feedback"),
             "tasks": metadata.get("tasks", []),
             "created_at": s.created_at.isoformat() if s.created_at else None,
@@ -149,7 +151,14 @@ async def update_student_progress(
     if not enrollments:
         raise NotFoundException("Active enrollment for student")
 
-    enrollment = enrollments[0]
+    enrollment = next(
+        (item for item in enrollments if item.id == data.enrollment_id),
+        None,
+    ) if data.enrollment_id else enrollments[0]
+    if not enrollment:
+        raise NotFoundException("Active enrollment for student")
+    if data.batch_name is not None:
+        enrollment.batch_name = data.batch_name.value
     enrollment.attended_lessons_count = data.attended_lessons_count
     enrollment.total_lessons_count = data.total_lessons_count
     enrollment.completed_tasks_count = data.completed_tasks_count
@@ -203,6 +212,7 @@ async def update_student_progress(
     return DataResponse(data={
         "student_id": str(student_id),
         "enrollment_id": str(enrollment.id),
+        "batch_name": enrollment.batch_name,
         "attended_lessons_count": enrollment.attended_lessons_count,
         "total_lessons_count": enrollment.total_lessons_count,
         "completed_tasks_count": enrollment.completed_tasks_count,
@@ -281,6 +291,7 @@ async def quick_add_student(
     enrollment = Enrollment(
         student_id=student.id,
         course_id=data.course_id,
+        batch_name=data.batch_name.value,
         status="active",
     )
     db.add(enrollment)
@@ -295,6 +306,7 @@ async def quick_add_student(
         "personal_email": data.personal_email,
         "phone": data.phone,
         "track_name": course.title,
+        "batch_name": enrollment.batch_name,
         "message": "Student added successfully",
     })
 

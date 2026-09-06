@@ -384,6 +384,7 @@ const StudentsSection: React.FC = () => {
           onClose={() => setShowAddModal(false)}
           trackName={selectedTrack}
           courseId={selectedCourse.id}
+          batchName="BATCH 1"
           onSuccess={() => {
             fetchStudents();
           }}

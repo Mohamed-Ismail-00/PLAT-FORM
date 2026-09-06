@@ -163,6 +163,7 @@ class DashboardService:
                 "current_enrollment": {
                     "enrollment_id": str(enrollment.id),
                     "course_title": enrollment.course.title if enrollment.course else "",
+                    "batch_name": getattr(enrollment, "batch_name", "BATCH 1"),
                     "progress": enrollment.progress_percentage,
                     "overall_score": round(overall_pred.score_value, 1) if overall_pred else None,
                     "classification": overall_pred.classification if overall_pred else None,

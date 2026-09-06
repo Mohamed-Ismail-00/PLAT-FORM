@@ -12,6 +12,7 @@ from app.core.middleware import setup_middleware
 from app.api.v1.router import api_v1_router
 from app.api.health import health_router
 from app.db.platform_bootstrap import bootstrap_platform_accounts
+from app.db.runtime_schema import ensure_runtime_schema
 from app.db.session import engine
 
 
@@ -22,6 +23,7 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """Application startup/shutdown lifecycle."""
     # Startup
+    await ensure_runtime_schema()
     await bootstrap_platform_accounts()
     yield
     # Shutdown

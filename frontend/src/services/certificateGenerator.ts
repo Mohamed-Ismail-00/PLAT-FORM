@@ -14,6 +14,7 @@ export interface CertificateData {
 }
 
 const COURSE_APPROVALS_URL = '/assets/official_approvals.png';
+const COURSE_TEMPLATE_URL = '/assets/course_certificate_template.png';
 
 const normalizeCourseTitle = (courseTitle: string) => courseTitle
   .toLowerCase()
@@ -41,6 +42,7 @@ const resolveCourseHours = (data: Pick<CertificateData, 'courseTitle' | 'courseH
 };
 
 let courseApprovalsImagePromise: Promise<HTMLImageElement> | null = null;
+let courseTemplateImagePromise: Promise<HTMLImageElement> | null = null;
 
 const loadCourseApprovalsImage = (): Promise<HTMLImageElement> => {
   if (!courseApprovalsImagePromise) {
@@ -55,49 +57,17 @@ const loadCourseApprovalsImage = (): Promise<HTMLImageElement> => {
   return courseApprovalsImagePromise;
 };
 
-/** Prevents the internship approval row from leaking into a Course certificate. */
-export const clearCourseCertificateApproval = (
-  ctx: CanvasRenderingContext2D,
-  canvasWidth: number,
-  canvasHeight: number,
-) => {
-  const scaleX = canvasWidth / 3000;
-  const scaleY = canvasHeight / 2118;
-
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(
-    500 * scaleX,
-    1290 * scaleY,
-    1950 * scaleX,
-    550 * scaleY,
-  );
-  // The original template's oversized V extends below the approval row.
-  ctx.fillRect(
-    2400 * scaleX,
-    1510 * scaleY,
-    600 * scaleX,
-    535 * scaleY,
-  );
-
-  // Restore the original frame cleanly after removing the V. Redrawing the
-  // complete frame avoids partial seams or stray box edges around the approval area.
-  ctx.strokeStyle = '#003F86';
-  ctx.lineWidth = 8 * Math.min(scaleX, scaleY);
-  ctx.strokeRect(
-    212 * scaleX,
-    130 * scaleY,
-    2577 * scaleX,
-    1778 * scaleY,
-  );
-
-  ctx.strokeStyle = '#43BCC2';
-  ctx.lineWidth = 4 * Math.min(scaleX, scaleY);
-  ctx.strokeRect(
-    175 * scaleX,
-    85 * scaleY,
-    2650 * scaleX,
-    1870 * scaleY,
-  );
+const loadCourseTemplateImage = (): Promise<HTMLImageElement> => {
+  if (!courseTemplateImagePromise) {
+    courseTemplateImagePromise = new Promise((resolve, reject) => {
+      const image = new Image();
+      image.crossOrigin = 'anonymous';
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('Failed to load the clean course certificate template.'));
+      image.src = COURSE_TEMPLATE_URL;
+    });
+  }
+  return courseTemplateImagePromise;
 };
 
 /**
@@ -114,7 +84,6 @@ export const applyCourseCertificateApproval = async (
   const scaleY = canvasHeight / 2118;
 
   ctx.save();
-  clearCourseCertificateApproval(ctx, canvasWidth, canvasHeight);
 
   // Preserve Maha's complete handwritten signature and official printed name.
   ctx.drawImage(
@@ -145,6 +114,17 @@ const createCourseApprovalOverlay = async () => {
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas context not available for the course approval block.');
   await applyCourseCertificateApproval(ctx, canvas.width, canvas.height);
+  return canvas.toDataURL('image/png');
+};
+
+const createCourseTemplateDataUrl = async () => {
+  const templateImage = await loadCourseTemplateImage();
+  const canvas = document.createElement('canvas');
+  canvas.width = 3000;
+  canvas.height = 2118;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas context not available for the course certificate template.');
+  ctx.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL('image/png');
 };
 
@@ -198,7 +178,10 @@ export const generateStudentCertificatePDF = async (data: CertificateData) => {
 
   // 1. Draw High-Resolution Certificate Background Template
   try {
-    doc.addImage(CERTIFICATE_TEMPLATE_B64, 'PNG', 0, 0, pageWidth, pageHeight);
+    const template = data.certificateType === 'course'
+      ? await createCourseTemplateDataUrl()
+      : CERTIFICATE_TEMPLATE_B64;
+    doc.addImage(template, 'PNG', 0, 0, pageWidth, pageHeight);
   } catch (e) {
     console.error('Failed to draw certificate template:', e);
   }
@@ -343,6 +326,6 @@ export const generateStudentCertificatePNG = (data: CertificateData): Promise<st
     };
 
     img.onerror = (err) => reject(err);
-    img.src = CERTIFICATE_TEMPLATE_B64;
+    img.src = data.certificateType === 'course' ? COURSE_TEMPLATE_URL : CERTIFICATE_TEMPLATE_B64;
   });
 };

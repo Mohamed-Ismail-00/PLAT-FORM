@@ -6,7 +6,6 @@ import { Award, FileText, Image as ImageIcon, X, Check, Calendar, User } from 'l
 // from drifting away from the generator used for PDF and PNG exports.
 import {
   applyCourseCertificateApproval,
-  clearCourseCertificateApproval,
   generateStudentCertificatePDF,
   generateStudentCertificatePNG,
   CERTIFICATE_TEMPLATE_B64,
@@ -74,7 +73,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     if (!ctx) return;
 
     const img = new Image();
-    img.src = CERTIFICATE_TEMPLATE_B64;
+    img.src = isCourseCertificate ? '/assets/course_certificate_template.png' : CERTIFICATE_TEMPLATE_B64;
     img.onload = async () => {
       canvas.width = 1200;
       canvas.height = Math.round(1200 * (img.height / img.width));
@@ -84,7 +83,6 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         try {
           await applyCourseCertificateApproval(ctx, canvas.width, canvas.height);
         } catch (error) {
-          clearCourseCertificateApproval(ctx, canvas.width, canvas.height);
           console.error('Failed to draw the course approval block:', error);
         }
       }

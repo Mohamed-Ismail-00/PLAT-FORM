@@ -79,24 +79,25 @@ export const clearCourseCertificateApproval = (
     535 * scaleY,
   );
 
-  // Restore the certificate frame where the V used to overlap it.
+  // Restore the original frame cleanly after removing the V. Redrawing the
+  // complete frame avoids partial seams or stray box edges around the approval area.
   ctx.strokeStyle = '#003F86';
   ctx.lineWidth = 8 * Math.min(scaleX, scaleY);
-  ctx.beginPath();
-  ctx.moveTo(2400 * scaleX, 1908 * scaleY);
-  ctx.lineTo(2805 * scaleX, 1908 * scaleY);
-  ctx.moveTo(2785 * scaleX, 1510 * scaleY);
-  ctx.lineTo(2785 * scaleX, 1908 * scaleY);
-  ctx.stroke();
+  ctx.strokeRect(
+    212 * scaleX,
+    130 * scaleY,
+    2577 * scaleX,
+    1778 * scaleY,
+  );
 
   ctx.strokeStyle = '#43BCC2';
   ctx.lineWidth = 4 * Math.min(scaleX, scaleY);
-  ctx.beginPath();
-  ctx.moveTo(2400 * scaleX, 1955 * scaleY);
-  ctx.lineTo(2825 * scaleX, 1955 * scaleY);
-  ctx.moveTo(2825 * scaleX, 1510 * scaleY);
-  ctx.lineTo(2825 * scaleX, 1955 * scaleY);
-  ctx.stroke();
+  ctx.strokeRect(
+    175 * scaleX,
+    85 * scaleY,
+    2650 * scaleX,
+    1870 * scaleY,
+  );
 };
 
 /**
@@ -125,8 +126,8 @@ export const applyCourseCertificateApproval = async (
   ctx.fillStyle = '#0B2545';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `600 ${36 * Math.min(scaleX, scaleY)}px Arial, "Segoe UI", sans-serif`;
-  ctx.fillText('Head of Innovera Academy', 2500 * scaleX, 1872 * scaleY);
+  ctx.font = `600 ${40 * Math.min(scaleX, scaleY)}px Arial, "Segoe UI", sans-serif`;
+  ctx.fillText('Head of Innovera Academy', 2500 * scaleX, 1870 * scaleY);
 
   // Keep the Academy seal and intentionally exclude Abdelrahman's block.
   ctx.drawImage(

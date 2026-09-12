@@ -140,6 +140,8 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1rem',
+        overflowY: 'auto',
+        overscrollBehavior: 'contain',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -148,12 +150,16 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
         style={{
           width: '100%',
           maxWidth: '520px',
+          maxHeight: 'calc(100dvh - 2rem)',
           backgroundColor: '#1E293B',
           borderRadius: '1rem',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
           color: '#F8FAFC',
           overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
         }}
       >
         {/* Modal Header */}
@@ -205,7 +211,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
         </div>
 
         {/* Modal Body / Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain' }}>
           {toastMessage && (
             <div
               style={{
@@ -408,7 +414,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem', position: 'sticky', bottom: 0, zIndex: 1, paddingTop: '0.75rem', paddingBottom: '0.25rem', backgroundColor: '#1E293B', boxShadow: '0 -0.75rem 1rem -0.5rem rgba(30, 41, 59, 0.95)' }}>
             <button
               type="button"
               onClick={onClose}

@@ -56,6 +56,8 @@ interface EditStudentProgressModalProps {
   initialLastName?: string;
   initialPhone?: string;
   initialPersonalEmail?: string;
+  initialOrganizationId?: string;
+  organizations?: Array<{ id: string; name: string; slug: string }>;
   initialAttended: number;
   initialTotalLessons: number;
   initialCompletedTasks: number;
@@ -85,6 +87,8 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   initialLastName = '',
   initialPhone = '',
   initialPersonalEmail = '',
+  initialOrganizationId = '',
+  organizations = [],
   initialAttended = 0,
   initialTotalLessons = 10,
   initialCompletedTasks = 0,
@@ -104,6 +108,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
   const [lastName, setLastName] = useState<string>(defaultLast);
   const [phone, setPhone] = useState<string>(initialPhone || '');
   const [personalEmail, setPersonalEmail] = useState<string>(initialPersonalEmail || '');
+  const [organizationId, setOrganizationId] = useState<string>(initialOrganizationId || '');
 
   // Progress state
   const [attended, setAttended] = useState<number>(initialAttended);
@@ -143,6 +148,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
       setLastName(lName);
       setPhone(initialPhone || '');
       setPersonalEmail(initialPersonalEmail || '');
+      setOrganizationId(initialOrganizationId || '');
       setAttended(initialAttended ?? 0);
       setTotalLessons(initialTotalLessons || 10);
       setCompletedTasksCount(initialCompletedTasks ?? 0);
@@ -154,7 +160,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
       setEditingTaskIndex(null);
       setToastMessage(null);
     }
-  }, [isOpen, studentId, studentName, initialFirstName, initialLastName, initialPhone, initialPersonalEmail, initialAttended, initialTotalLessons, initialCompletedTasks, initialTotalTasks, initialFeedback, initialTasks, initialBatch]);
+  }, [isOpen, studentId, studentName, initialFirstName, initialLastName, initialPhone, initialPersonalEmail, initialOrganizationId, initialAttended, initialTotalLessons, initialCompletedTasks, initialTotalTasks, initialFeedback, initialTasks, initialBatch]);
 
   if (!isOpen) return null;
 
@@ -271,6 +277,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
       last_name: lastName.trim(),
       phone: phone.trim() || null,
       personal_email: personalEmail.trim() || null,
+      organization_id: organizationId || null,
     };
 
     try {
@@ -285,6 +292,7 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
           last_name: lastName.trim(),
           phone: phone.trim(),
           personal_email: personalEmail.trim(),
+          organization_id: organizationId || null,
           attended_lessons_count: attended,
           total_lessons_count: totalLessons,
           completed_tasks_count: isIntern ? tasks.length : completedTasksCount,
@@ -496,6 +504,21 @@ export const EditStudentProgressModal: React.FC<EditStudentProgressModalProps> =
                 />
               </div>
             </div>
+          </div>
+
+          {/* University / partner scope */}
+          <div style={{ marginTop: '0.9rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+              University / Partner
+            </label>
+            <select
+              value={organizationId}
+              onChange={(event) => setOrganizationId(event.target.value)}
+              style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.375rem', background: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-main)', outline: 'none' }}
+            >
+              <option value="">Internal / No partner workspace</option>
+              {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
+            </select>
           </div>
 
           {/* 2. Days Attended Section */}

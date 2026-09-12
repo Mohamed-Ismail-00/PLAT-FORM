@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { averageTaskRating, normalizeTaskRatings, TASK_RATING_MAX } from '../utils/taskRatings';
+import { syncGeneratedPartnerDocument } from './partnerDocumentSync';
 
 export interface ReportTaskItem {
   id?: string;
@@ -560,6 +561,14 @@ export const generateStudentPDFReport = async (
   if (options.autoSave !== false) {
     doc.save(options.filename || defaultFilename);
   }
+
+  void syncGeneratedPartnerDocument({
+    studentCode: data.studentCode,
+    documentType: 'report',
+    title: 'Official Internship Evaluation Report',
+    filename: options.filename || defaultFilename,
+    blob: doc.output('blob'),
+  });
 
   return doc;
 };

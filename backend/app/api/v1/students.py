@@ -7,6 +7,7 @@ from uuid import UUID
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 
 from app.core.constants import RoleName
 from app.core.dependencies import CurrentUser, DBSession, require_roles
@@ -14,6 +15,7 @@ from app.core.exceptions import NotFoundException
 from app.core.security import hash_password
 from app.models.enrollment import Enrollment
 from app.models.user import Student, User
+from app.models.organization import Organization
 from app.repositories.course_repository import CourseRepository, EnrollmentRepository
 from app.repositories.user_repository import StudentRepository, UserRepository
 from app.schemas.common import DataResponse
@@ -76,6 +78,7 @@ async def list_students(
                 track_name = enrollment.course.title if enrollment.course else ""
 
         metadata = s.metadata_ if hasattr(s, "metadata_") and s.metadata_ else {}
+        organization = getattr(enrollment, "organization", None) if enrollment else None
         personal_email = (metadata.get("personal_email") or "").strip()
         login_email = s.user.email if s.user else ""
         items.append({
@@ -99,6 +102,9 @@ async def list_students(
             "total_tasks_count": enrollment.total_tasks_count if enrollment else 12,
             "progress_percentage": enrollment.progress_percentage if enrollment else 0,
             "batch_name": getattr(enrollment, "batch_name", "BATCH 1") if enrollment else "BATCH 1",
+            "organization_id": str(organization.id) if organization else None,
+            "organization_name": organization.name if organization else None,
+            "organization_slug": organization.slug if organization else None,
             "feedback": metadata.get("feedback"),
             "tasks": metadata.get("tasks", []),
             "created_at": s.created_at.isoformat() if s.created_at else None,
@@ -159,6 +165,17 @@ async def update_student_progress(
         raise NotFoundException("Active enrollment for student")
     if data.batch_name is not None:
         enrollment.batch_name = data.batch_name.value
+    if "organization_id" in data.model_fields_set:
+        if data.organization_id:
+            organization = (await db.execute(
+                select(Organization).where(
+                    Organization.id == data.organization_id,
+                    Organization.status == "active",
+                )
+            )).scalar_one_or_none()
+            if organization is None:
+                raise NotFoundException("Organization")
+        enrollment.organization_id = data.organization_id
     enrollment.attended_lessons_count = data.attended_lessons_count
     enrollment.total_lessons_count = data.total_lessons_count
     enrollment.completed_tasks_count = data.completed_tasks_count
@@ -244,6 +261,17 @@ async def quick_add_student(
     if not course:
         raise NotFoundException("Course")
 
+    organization = None
+    if data.organization_id:
+        organization = (await db.execute(
+            select(Organization).where(
+                Organization.id == data.organization_id,
+                Organization.status == "active",
+            )
+        )).scalar_one_or_none()
+        if organization is None:
+            raise NotFoundException("Organization")
+
     # Generate a unique email from the name
     base_email = f"{data.first_name.lower()}.{data.last_name.lower()}"
     base_email = re.sub(r"[^a-z0-9.]", "", base_email)  # sanitize
@@ -291,6 +319,7 @@ async def quick_add_student(
     enrollment = Enrollment(
         student_id=student.id,
         course_id=data.course_id,
+        organization_id=organization.id if organization else None,
         batch_name=data.batch_name.value,
         status="active",
     )
@@ -307,6 +336,9 @@ async def quick_add_student(
         "phone": data.phone,
         "track_name": course.title,
         "batch_name": enrollment.batch_name,
+        "organization_id": str(organization.id) if organization else None,
+        "organization_name": organization.name if organization else None,
+        "organization_slug": organization.slug if organization else None,
         "message": "Student added successfully",
     })
 

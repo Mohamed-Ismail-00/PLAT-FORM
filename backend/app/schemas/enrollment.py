@@ -38,6 +38,7 @@ class TaskItem(BaseModel):
 
 class StudentProgressUpdate(BaseModel):
     enrollment_id: Optional[UUID] = None
+    organization_id: Optional[UUID] = None
     attended_lessons_count: int = Field(..., ge=0)
     total_lessons_count: int = Field(10, ge=1)
     completed_tasks_count: int = Field(..., ge=0)

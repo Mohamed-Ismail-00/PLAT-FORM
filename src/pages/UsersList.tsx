@@ -5,16 +5,17 @@ import { useNavigate } from 'react-router-dom';
 import { EditStudentProgressModal, type TaskItem } from '../components/EditStudentProgressModal';
 import { AddStudentModal } from '../components/AddStudentModal';
 import { CertificateModal } from '../components/CertificateModal';
-import { Award } from 'lucide-react';
 import { MessageSquare, Plus, Trash2, Edit3, Eye, CheckCircle2 } from 'lucide-react';
 import { averageTaskRating, normalizeTaskRatings, TASK_RATING_MAX } from '../utils/taskRatings';
 
 type InternBatch = 'BATCH 1' | 'BATCH 2';
 const INTERN_BATCHES: InternBatch[] = ['BATCH 1', 'BATCH 2'];
+type OrganizationOption = { id: string; name: string; slug: string; type: string };
 
 const UsersList: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState<string>('All');
   const [selectedBatch, setSelectedBatch] = useState<InternBatch>('BATCH 1');
@@ -47,9 +48,19 @@ const UsersList: React.FC = () => {
     }
   };
 
+  const fetchOrganizations = async () => {
+    try {
+      const res = await api.get('/organizations?status=active');
+      setOrganizations(Array.isArray(res.data?.data) ? res.data.data : []);
+    } catch (err) {
+      console.error("Failed to fetch organizations", err);
+    }
+  };
+
   useEffect(() => {
     fetchStudents();
     fetchCourses();
+    fetchOrganizations();
   }, []);
 
   // Build dynamic track list from courses
@@ -454,6 +465,8 @@ const UsersList: React.FC = () => {
           initialLastName={editingStudent.last_name || (editingStudent.full_name?.split(' ').slice(1).join(' ') || '')}
           initialPhone={editingStudent.phone || ''}
           initialPersonalEmail={editingStudent.personal_email || ''}
+          initialOrganizationId={editingStudent.organization_id || ''}
+          organizations={organizations}
           initialBatch={editingStudent.batch_name || 'BATCH 1'}
           initialAttended={editingStudent.attended_lessons_count ?? 0}
           initialTotalLessons={editingStudent.total_lessons_count ?? 10}
@@ -474,6 +487,7 @@ const UsersList: React.FC = () => {
           trackName={selectedTrack}
           courseId={selectedCourse.id}
           batchName={selectedBatch}
+          organizations={organizations}
           onSuccess={() => {
             fetchStudents();
           }}

@@ -1,6 +1,13 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
+  const isLocalHost = typeof window !== 'undefined'
+    && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+  // Use the Vite proxy for local dashboard access to avoid browser CORS
+  // failures when the API is running on the local backend port.
+  if (isLocalHost) return '/api/v1';
+
   if (import.meta.env.VITE_API_URL) {
     const configuredUrl = import.meta.env.VITE_API_URL.trim();
     const url = /^https?:\/\//i.test(configuredUrl)
@@ -12,11 +19,12 @@ const getBaseURL = () => {
   if (import.meta.env.PROD) {
     return '/api/v1';
   }
-  return 'http://localhost:8000/api/v1';
+  return '/api/v1';
 };
 
 const api = axios.create({
   baseURL: getBaseURL(),
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },

@@ -12,6 +12,7 @@ from app.core.middleware import setup_middleware
 from app.api.v1.router import api_v1_router
 from app.api.health import health_router
 from app.db.platform_bootstrap import bootstrap_platform_accounts
+from app.db.partner_bootstrap import bootstrap_elswedy_partner_user
 from app.db.runtime_schema import ensure_runtime_schema
 from app.db.session import engine
 
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     # Startup
     await ensure_runtime_schema()
     await bootstrap_platform_accounts()
+    await bootstrap_elswedy_partner_user()
     yield
     # Shutdown
     await engine.dispose()

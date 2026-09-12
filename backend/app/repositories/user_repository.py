@@ -80,7 +80,8 @@ class StudentRepository(BaseRepository[Student]):
             select(Student)
             .options(
                 selectinload(Student.user),
-                selectinload(Student.enrollments).selectinload(Enrollment.course)
+                selectinload(Student.enrollments).selectinload(Enrollment.course),
+                selectinload(Student.enrollments).selectinload(Enrollment.organization),
             )
             .offset(offset).limit(limit)
         )

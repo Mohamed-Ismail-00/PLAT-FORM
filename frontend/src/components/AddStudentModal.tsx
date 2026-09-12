@@ -9,6 +9,7 @@ interface AddStudentModalProps {
   trackName: string;
   courseId: string;
   batchName: 'BATCH 1' | 'BATCH 2';
+  organizations?: Array<{ id: string; name: string; slug: string }>;
   onSuccess: () => void;
 }
 
@@ -18,12 +19,14 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
   trackName,
   courseId,
   batchName,
+  organizations = [],
   onSuccess,
 }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [personalEmail, setPersonalEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [organizationId, setOrganizationId] = useState('');
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -34,6 +37,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
       setLastName('');
       setPersonalEmail('');
       setPhoneNumber('');
+      setOrganizationId('');
       setToastMessage(null);
     }
   }, [isOpen]);
@@ -63,6 +67,9 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
         course_id: courseId,
         batch_name: batchName,
       };
+      if (organizationId) {
+        payload.organization_id = organizationId;
+      }
       if (personalEmail.trim()) {
         payload.personal_email = personalEmail.trim();
       }
@@ -297,6 +304,26 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 </span>
               )}
             </div>
+          </div>
+
+          {/* Organization / university scope */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '0.375rem' }}>
+              University / Partner <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: 400 }}>(Optional)</span>
+            </label>
+            <select
+              value={organizationId}
+              onChange={(event) => setOrganizationId(event.target.value)}
+              style={{ ...inputStyle(), paddingLeft: '0.875rem' }}
+            >
+              <option value="">Internal / No partner workspace</option>
+              {organizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>{organization.name}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.35rem', display: 'block' }}>
+              Choosing a partner makes this student visible in that partner&apos;s read-only workspace.
+            </span>
           </div>
 
           {/* Personal Email Field */}

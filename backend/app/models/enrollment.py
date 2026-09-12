@@ -24,6 +24,9 @@ class Enrollment(Base, UUIDMixin):
     course_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False,
     )
+    organization_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True,
+    )
     batch_name: Mapped[str] = mapped_column(
         String(20),
         default=BatchName.BATCH_1.value,
@@ -42,6 +45,7 @@ class Enrollment(Base, UUIDMixin):
     # Relationships
     student: Mapped["Student"] = relationship(back_populates="enrollments")
     course: Mapped["Course"] = relationship(back_populates="enrollments")
+    organization: Mapped[Optional["Organization"]] = relationship(back_populates="enrollments")
     predictions: Mapped[list["Prediction"]] = relationship(back_populates="enrollment")
     recommendations: Mapped[list["Recommendation"]] = relationship(back_populates="enrollment")
     instructor_notes: Mapped[list["InstructorNote"]] = relationship(back_populates="enrollment")
@@ -50,6 +54,7 @@ class Enrollment(Base, UUIDMixin):
         UniqueConstraint("student_id", "course_id", name="uq_enrollment_student_course"),
         Index("idx_enrollments_student_id", "student_id"),
         Index("idx_enrollments_course_id", "course_id"),
+        Index("idx_enrollments_organization_id", "organization_id"),
         Index("idx_enrollments_status", "status"),
     )
 
@@ -58,3 +63,4 @@ from app.models.user import Student  # noqa: E402
 from app.models.course import Course  # noqa: E402
 from app.models.prediction import Prediction, Recommendation  # noqa: E402
 from app.models.notification import InstructorNote  # noqa: E402
+from app.models.organization import Organization  # noqa: E402

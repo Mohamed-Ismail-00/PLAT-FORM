@@ -38,7 +38,12 @@ async def get_current_user(
         raise UnauthorizedException("Authentication is required")
 
     payload = decode_token(token)
-    if not payload or payload.get("type") != "access" or not payload.get("sub"):
+    if (
+        not payload
+        or payload.get("type") != "access"
+        or payload.get("partner_slug")
+        or not payload.get("sub")
+    ):
         raise UnauthorizedException("Invalid or expired access token")
 
     return {

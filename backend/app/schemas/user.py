@@ -74,6 +74,7 @@ class QuickAddStudentRequest(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     course_id: UUID
+    organization_id: Optional[UUID] = None
     batch_name: BatchName = BatchName.BATCH_1
     personal_email: Optional[str] = Field(None, max_length=255)
     phone: Optional[str] = Field(None, max_length=20)

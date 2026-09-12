@@ -12,3 +12,5 @@ from app.models.submission import QuizAttempt, AssignmentSubmission, ProjectSubm
 from app.models.tracking import Attendance, VideoProgress, ActivityLog  # noqa
 from app.models.prediction import Prediction, Recommendation  # noqa
 from app.models.notification import Notification, InstructorNote  # noqa
+from app.models.organization import Organization  # noqa
+from app.models.partner import PartnerUser, PartnerStudent, PartnerDocument  # noqa

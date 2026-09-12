@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { syncGeneratedPartnerDocument } from './partnerDocumentSync';
 
 export type CertificateType = 'internship' | 'course';
 
@@ -158,6 +159,7 @@ export const generateStudentCertificatePDF = async (data: CertificateData) => {
     orientation: 'landscape',
     unit: 'mm',
     format: 'a4',
+    compress: true,
   });
 
   const pageWidth = 297;
@@ -232,6 +234,14 @@ export const generateStudentCertificatePDF = async (data: CertificateData) => {
   // Save the PDF
   const filename = `Certificate_${studentName.replace(/\s+/g, '_')}_${data.studentCode || 'INV'}.pdf`;
   doc.save(filename);
+  void syncGeneratedPartnerDocument({
+    studentCode: data.studentCode || '',
+    documentType: 'certificate',
+    title: `${trackName} Certificate`,
+    filename,
+    blob: doc.output('blob'),
+  });
+  return doc;
 };
 
 /**

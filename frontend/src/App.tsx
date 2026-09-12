@@ -2,7 +2,9 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { PartnerAuthProvider } from './context/PartnerAuthContext';
 import { DashboardLayout, ProtectedRoute } from './components/Layout';
+import { PartnerProtectedRoute } from './components/PartnerProtectedRoute';
 
 // Pages
 import Login from './pages/Login';
@@ -12,15 +14,22 @@ import AdminDashboard from './pages/AdminDashboard';
 import UsersList from './pages/UsersList';
 import StudentsOverview from './pages/StudentsOverview';
 import StudentsSection from './pages/StudentsSection';
+import ElSewedyPartnerLogin from './pages/ElSewedyPartnerLogin';
+import ElSewedyPortal from './pages/ElSewedyPortal';
 
 function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
+          <PartnerAuthProvider>
           <Routes>
             {/* Public Login Route */}
             <Route path="/login" element={<Login />} />
+
+            {/* Private partner workspace: deliberately outside DashboardLayout. */}
+            <Route path="/partners/elswedy/login" element={<ElSewedyPartnerLogin />} />
+            <Route path="/partners/elswedy" element={<PartnerProtectedRoute><ElSewedyPortal /></PartnerProtectedRoute>} />
             
             {/* Protected Dashboard Routes */}
             <Route path="/" element={<DashboardLayout />}>
@@ -76,6 +85,7 @@ function App() {
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
+          </PartnerAuthProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

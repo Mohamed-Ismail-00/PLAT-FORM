@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     PLATFORM_SUPER_ADMIN_EMAIL: str = ""
     PLATFORM_SUPER_ADMIN_PASSWORD: str = ""
 
+    # Isolated El Sewedy partner workspace bootstrap. Disabled by default.
+    ELSWEDY_PARTNER_BOOTSTRAP_ENABLED: bool = False
+    ELSWEDY_PARTNER_EMAIL: str = ""
+    ELSWEDY_PARTNER_PASSWORD: str = ""
+    ELSWEDY_PARTNER_FIRST_NAME: str = "El Sewedy"
+    ELSWEDY_PARTNER_LAST_NAME: str = "University Admin"
+
     # ── CORS ─────────────────────────────────────────────────────
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,*"
 

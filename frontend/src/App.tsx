@@ -14,6 +14,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import UsersList from './pages/UsersList';
 import StudentsOverview from './pages/StudentsOverview';
 import StudentsSection from './pages/StudentsSection';
+import CertificateRegistry from './pages/CertificateRegistry';
 import ElSewedyPartnerLogin from './pages/ElSewedyPartnerLogin';
 import ElSewedyPortal from './pages/ElSewedyPortal';
 
@@ -73,6 +74,11 @@ function App() {
               <Route path="admin/students" element={
                 <ProtectedRoute role="admin">
                   <StudentsSection />
+                </ProtectedRoute>
+              } />
+              <Route path="admin/certificate-history" element={
+                <ProtectedRoute role="admin">
+                  <CertificateRegistry />
                 </ProtectedRoute>
               } />
               <Route path="admin/students/:id" element={

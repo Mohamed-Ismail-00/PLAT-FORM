@@ -10,14 +10,19 @@ import {
   getCourseDurationHours,
   type CertificateType,
 } from '../services/certificateGenerator';
+import { recordCertificateDownload } from '../services/certificateAudit';
 
 interface CertificateModalProps {
   isOpen: boolean;
   onClose: () => void;
   studentName: string;
   studentCode?: string;
+  studentId?: string;
+  enrollmentId?: string;
   courseTitle?: string;
   certificateType?: CertificateType;
+  shouldAudit?: boolean;
+  onCertificateIssued?: () => void;
 }
 
 export const CertificateModal: React.FC<CertificateModalProps> = ({
@@ -25,8 +30,12 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   onClose,
   studentName: initialStudentName,
   studentCode = 'INV-2026',
+  studentId,
+  enrollmentId,
   courseTitle: initialCourseTitle = 'AI track',
   certificateType = 'internship',
+  shouldAudit = false,
+  onCertificateIssued,
 }) => {
   const isCourseCertificate = certificateType === 'course';
   const [name, setName] = useState(initialStudentName || 'Student Name');
@@ -131,6 +140,18 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         certificateType,
         courseHours,
       });
+      if (shouldAudit && studentId && enrollmentId) {
+        recordCertificateDownload({
+          studentId,
+          enrollmentId,
+          certificateType,
+          fileFormat: 'pdf',
+          programTitle: track.trim() || initialCourseTitle,
+          trainingPeriod: isCourseCertificate ? undefined : trainingPeriod.trim() || monthYear.trim(),
+          courseHours: isCourseCertificate ? courseHours : undefined,
+        });
+        onCertificateIssued?.();
+      }
       setToastMessage('Certificate PDF generated successfully!');
       setTimeout(() => setToastMessage(null), 3000);
     } catch (err) {
@@ -153,6 +174,18 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         certificateType,
         courseHours,
       });
+      if (shouldAudit && studentId && enrollmentId) {
+        recordCertificateDownload({
+          studentId,
+          enrollmentId,
+          certificateType,
+          fileFormat: 'png',
+          programTitle: track.trim() || initialCourseTitle,
+          trainingPeriod: isCourseCertificate ? undefined : trainingPeriod.trim() || monthYear.trim(),
+          courseHours: isCourseCertificate ? courseHours : undefined,
+        });
+        onCertificateIssued?.();
+      }
       setToastMessage('Certificate Image (PNG) downloaded!');
       setTimeout(() => setToastMessage(null), 3000);
     } catch (err) {

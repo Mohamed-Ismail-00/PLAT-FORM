@@ -12,6 +12,7 @@ from app.api.v1.scoring import router as scoring_router
 from app.api.v1.attendance import router as attendance_router
 from app.api.v1.partners import router as partners_router
 from app.api.v1.organizations import router as organizations_router
+from app.api.v1.certificates import router as certificates_router
 
 api_v1_router = APIRouter()
 
@@ -23,3 +24,4 @@ api_v1_router.include_router(scoring_router)
 api_v1_router.include_router(attendance_router)
 api_v1_router.include_router(partners_router)
 api_v1_router.include_router(organizations_router)
+api_v1_router.include_router(certificates_router)

@@ -150,6 +150,7 @@ class DashboardService:
         meta = student.metadata_ if (student and hasattr(student, "metadata_") and student.metadata_) else {}
         return {
             "overview": {
+                "student_id": str(student.id),
                 "student_name": student.user.full_name if student.user else "",
                 "student_code": student.student_code,
                 "first_name": student.user.first_name if student.user else "",

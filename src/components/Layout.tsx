@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   Sun,
-  Moon
+  Moon,
+  ClipboardList
 } from 'lucide-react';
 
 const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -84,6 +85,7 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, o
               </p>
               <NavItem to="/admin/students-overview" icon={<Activity size={20} />} label="Students Overview" onClick={onClose} />
               <NavItem to="/admin/students" icon={<BookOpen size={20} />} label="Course Students" onClick={onClose} />
+              <NavItem to="/admin/certificate-history" icon={<ClipboardList size={20} />} label="Certificate History" onClick={onClose} />
             </>
           )}
         </div>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { EditStudentProgressModal, type TaskItem } from '../components/EditStudentProgressModal';
 import { CertificateModal } from '../components/CertificateModal';
+import { CertificateActivityCard } from '../components/CertificateActivityCard';
 import { Award } from 'lucide-react';
 import { generateStudentPDFReport } from '../services/pdfReportGenerator';
 import { averageTaskRating, normalizeTaskRatings, TASK_RATING_MAX } from '../utils/taskRatings';
@@ -36,6 +37,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [isCertOpen, setIsCertOpen] = useState(false);
+  const [certificateActivityRefresh, setCertificateActivityRefresh] = useState(0);
 
   // Edit form state
   const [attendedLessons, setAttendedLessons] = useState(0);
@@ -117,6 +119,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
   if (!data || !data.overview) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>No student data available.</div>;
 
   const { overview, attendance, scores, achievements } = data;
+  const canManageCertificates = Boolean(user?.roles?.some((role) => role === 'admin' || role === 'super_admin'));
   const rawTasksToDisplay: TaskItem[] = studentTasks.length > 0 ? studentTasks : (overview.tasks || []);
   const tasksToDisplay: TaskItem[] = rawTasksToDisplay.map(normalizeTaskRatings);
   const completedTasksCount = tasksToDisplay.length > 0 ? tasksToDisplay.length : (overview.current_enrollment?.completed_tasks_count || 0);
@@ -491,6 +494,14 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
         </Card>
       </div>
 
+      {canManageCertificates && (
+        <CertificateActivityCard
+          studentId={id || overview?.student_id}
+          programType={certificateType === 'course' ? 'student' : 'intern'}
+          refreshSignal={certificateActivityRefresh}
+        />
+      )}
+
       {/* Certificate Generator Modal */}
       {isCertOpen && (
         <CertificateModal
@@ -498,8 +509,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ certificateType = '
           onClose={() => setIsCertOpen(false)}
           studentName={overview?.student_name || 'Student Name'}
           studentCode={overview?.student_code || 'INV-2026'}
+          studentId={id || overview?.student_id}
+          enrollmentId={overview?.current_enrollment?.enrollment_id}
           courseTitle={overview?.current_enrollment?.course_title || 'AI track'}
           certificateType={certificateType}
+          shouldAudit={canManageCertificates}
+          onCertificateIssued={() => setCertificateActivityRefresh((value) => value + 1)}
         />
       )}
 

@@ -12,6 +12,7 @@ from sqlalchemy import inspect, text
 from app.db.base import Base
 from app.db.session import engine
 from app.models.certificate import CertificateIssuanceEvent
+from app.models.trainer_feedback import TrainerFeedbackImport, TrainerFeedbackResponse
 from app.models.organization import Organization
 from app.models.partner import PartnerDocument, PartnerStudent, PartnerUser
 
@@ -29,6 +30,8 @@ async def ensure_runtime_schema() -> None:
             PartnerStudent.__table__,
             PartnerDocument.__table__,
             CertificateIssuanceEvent.__table__,
+            TrainerFeedbackImport.__table__,
+            TrainerFeedbackResponse.__table__,
         ]
         if connection.dialect.name == "sqlite":
             tables = list(Base.metadata.sorted_tables)

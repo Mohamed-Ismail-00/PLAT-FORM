@@ -15,3 +15,4 @@ from app.models.notification import Notification, InstructorNote  # noqa
 from app.models.organization import Organization  # noqa
 from app.models.partner import PartnerUser, PartnerStudent, PartnerDocument  # noqa
 from app.models.certificate import CertificateIssuanceEvent  # noqa
+from app.models.trainer_feedback import TrainerFeedbackImport, TrainerFeedbackResponse  # noqa

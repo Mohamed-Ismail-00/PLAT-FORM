@@ -15,7 +15,8 @@ import {
   X,
   Sun,
   Moon,
-  ClipboardList
+  ClipboardList,
+  BarChart3
 } from 'lucide-react';
 
 const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -86,6 +87,10 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, o
               <NavItem to="/admin/students-overview" icon={<Activity size={20} />} label="Students Overview" onClick={onClose} />
               <NavItem to="/admin/students" icon={<BookOpen size={20} />} label="Course Students" onClick={onClose} />
               <NavItem to="/admin/certificate-history" icon={<ClipboardList size={20} />} label="Certificate History" onClick={onClose} />
+              <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#38BDF8', marginTop: '1.25rem', marginBottom: '0.35rem', paddingLeft: '1rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                Trainer Performance
+              </p>
+              <NavItem to="/admin/trainers" icon={<BarChart3 size={20} />} label="Trainer Dashboard" onClick={onClose} />
             </>
           )}
         </div>

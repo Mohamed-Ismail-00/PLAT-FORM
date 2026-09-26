@@ -2,12 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Award, FileText, Image as ImageIcon, X, Check, Calendar, User } from 'lucide-react';
 import {
-  applyCourseCertificateApproval,
   generateStudentCertificatePDF,
   generateStudentCertificatePNG,
-  CERTIFICATE_TEMPLATE_B64,
-  getCertificateDescription,
   getCourseDurationHours,
+  renderStudentCertificatePreview,
   type CertificateType,
 } from '../services/certificateGenerator';
 import { recordCertificateDownload } from '../services/certificateAudit';
@@ -69,62 +67,25 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     }
   };
 
-  // Live Canvas Preview
+  // Preview and downloads share one renderer so the generated file matches exactly.
   useEffect(() => {
     if (!isOpen) return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const img = new Image();
-    img.src = isCourseCertificate ? '/assets/course_certificate_template.png' : CERTIFICATE_TEMPLATE_B64;
-    img.onload = async () => {
-      canvas.width = 1200;
-      canvas.height = Math.round(1200 * (img.height / img.width));
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      if (isCourseCertificate) {
-        try {
-          await applyCourseCertificateApproval(ctx, canvas.width, canvas.height);
-        } catch (error) {
-          console.error('Failed to draw the course approval block:', error);
-        }
-      }
-
-      // Draw Student Name
-      ctx.fillStyle = '#004976';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      const sName = name.trim() || 'Student Name';
-      let fontSize = 48;
-      if (sName.length > 30) fontSize = 38;
-      else if (sName.length > 22) fontSize = 42;
-
-      ctx.font = `${fontSize}px Arial, "Segoe UI", sans-serif`;
-      ctx.fillText(sName, canvas.width / 2, canvas.height * 0.455);
-
-      // Draw Description
-      ctx.fillStyle = '#14233C';
-      ctx.font = 'bold 28px Georgia, serif';
-      const [desc1, desc2] = getCertificateDescription({
-        courseTitle: track,
-        monthYear,
-        trainingPeriod,
-        certificateType,
-        courseHours,
-      });
-      if (isCourseCertificate || trainingPeriod.trim()) {
-        const widestLine = Math.max(ctx.measureText(desc1).width, ctx.measureText(desc2).width);
-        ctx.font = `bold ${28 * Math.min(1, canvas.width * 0.84 / widestLine)}px Georgia, serif`;
-      }
-
-      ctx.fillText(desc1, canvas.width / 2, canvas.height * 0.556);
-      ctx.fillText(desc2, canvas.width / 2, canvas.height * 0.592);
-    };
-  }, [isOpen, name, track, monthYear, trainingPeriod, certificateType, courseHours, isCourseCertificate]);
+    let cancelled = false;
+    void renderStudentCertificatePreview(canvas, {
+      studentName: name,
+      studentCode,
+      courseTitle: track,
+      monthYear,
+      trainingPeriod,
+      certificateType,
+      courseHours,
+    }, () => !cancelled).catch((error) => {
+      if (!cancelled) console.error('Failed to render the certificate preview:', error);
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, name, studentCode, track, monthYear, trainingPeriod, certificateType, courseHours]);
 
   if (!isOpen) return null;
 

@@ -37,530 +37,416 @@ export interface ReportGenerationOptions {
 
 const OFFICIAL_LOGO_URL = '/assets/innovera_official_logo.png';
 const OFFICIAL_APPROVALS_URL = '/assets/official_approvals.png';
-
-const BLACK = [21, 21, 21] as const;
-const DARK_GRAY = [60, 60, 60] as const;
-const MID_GRAY = [106, 106, 106] as const;
-const LIGHT_GRAY = [229, 229, 229] as const;
-const PALE_GRAY = [245, 245, 245] as const;
+const INK = [29, 39, 50] as const;
+const MUTED = [91, 103, 115] as const;
+const RULE = [207, 215, 222] as const;
+const PALE = [247, 249, 250] as const;
 
 const loadImageDataUrl = async (url: string): Promise<string> => {
   const response = await fetch(url, { cache: 'force-cache' });
-  if (!response.ok) {
-    throw new Error(`Unable to load report asset: ${url}`);
-  }
-
+  if (!response.ok) throw new Error(`Unable to load report asset: ${url}`);
   const blob = await response.blob();
   const bytes = new Uint8Array(await blob.arrayBuffer());
   let binary = '';
-  const chunkSize = 0x8000;
-
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
   }
-
   return `data:${blob.type || 'image/png'};base64,${btoa(binary)}`;
 };
 
-const cleanText = (value?: string): string => {
-  if (!value) return '';
-  return value
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}]/gu, '')
-    .replace(/[\u2605\u2606]/g, '')
-    .trim();
+/** The approved source strip contains two signatures. Crop only the approved
+ * Maha and seal regions without recolouring or changing the original asset. */
+const cropApproval = async (
+  source: string,
+  region: { x: number; y: number; width: number; height: number },
+): Promise<string> => {
+  const image = new Image();
+  image.src = source;
+  await image.decode();
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(image.naturalWidth * region.width);
+  canvas.height = Math.round(image.naturalHeight * region.height);
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Unable to prepare official report approvals.');
+  context.drawImage(
+    image,
+    Math.round(image.naturalWidth * region.x),
+    Math.round(image.naturalHeight * region.y),
+    canvas.width,
+    canvas.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  );
+  return canvas.toDataURL('image/png');
 };
 
-const safeFilenamePart = (value: string, fallback: string): string => {
-  const sanitized = cleanText(value)
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '')
-    .replace(/\s+/g, '_')
-    .replace(/[. ]+$/g, '')
-    .slice(0, 80);
-  return sanitized || fallback;
-};
+const cleanText = (value?: string): string => (value || '')
+  .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}]/gu, '')
+  .trim();
+
+const safeFilenamePart = (value: string, fallback: string): string => cleanText(value)
+  .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '')
+  .replace(/\s+/g, '_')
+  .replace(/[. ]+$/g, '')
+  .slice(0, 80) || fallback;
 
 const formatReportDate = (): string => new Date().toLocaleDateString('en-GB', {
-  day: '2-digit',
-  month: 'long',
-  year: 'numeric',
+  day: '2-digit', month: 'long', year: 'numeric',
 });
+
+type Color = readonly [number, number, number];
+type TaskLine = { text: string; kind: 'title' | 'note'; height: number };
 
 export const generateStudentPDFReport = async (
   data: ReportData,
   options: ReportGenerationOptions = {},
 ): Promise<jsPDF> => {
-  const [officialLogo, officialApprovals] = await Promise.all([
+  const [officialLogo, approvalsSource] = await Promise.all([
     loadImageDataUrl(OFFICIAL_LOGO_URL),
     loadImageDataUrl(OFFICIAL_APPROVALS_URL),
   ]);
+  const [mahaApproval, officialSeal] = await Promise.all([
+    cropApproval(approvalsSource, { x: 0, y: 0, width: 0.35, height: 0.72 }),
+    cropApproval(approvalsSource, { x: 0.385, y: 0.17, width: 0.22, height: 0.77 }),
+  ]);
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = 210;
   const pageHeight = 297;
   const margin = 18;
   const contentWidth = pageWidth - margin * 2;
-  const contentBottom = pageHeight - 20;
-  const reportReference = `INN-${(cleanText(data.studentCode) || 'EVAL').slice(0, 36)}`;
+  const contentBottom = 273;
   let y = 16;
 
-  const setTextColor = (color: readonly [number, number, number]) => {
-    doc.setTextColor(color[0], color[1], color[2]);
-  };
-
-  const setDrawColor = (color: readonly [number, number, number]) => {
-    doc.setDrawColor(color[0], color[1], color[2]);
-  };
-
-  const setFillColor = (color: readonly [number, number, number]) => {
-    doc.setFillColor(color[0], color[1], color[2]);
-  };
-
-  const addHeader = () => {
-    setDrawColor(BLACK);
-    doc.setLineWidth(0.45);
-    doc.line(margin, y, pageWidth - margin, y);
-
-    doc.addImage(officialLogo, 'PNG', margin, y + 5, 43, 12.8);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.4);
-    setTextColor(DARK_GRAY);
-    doc.text('INNOVERA FOR INTELLIGENT SOFTWARE SOLUTIONS', margin, y + 21);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12.6);
-    setTextColor(BLACK);
-    doc.text('OFFICIAL INTERNSHIP', pageWidth - margin, y + 5.5, { align: 'right' });
-    doc.text('EVALUATION REPORT', pageWidth - margin, y + 11.8, { align: 'right' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.2);
-    setTextColor(MID_GRAY);
-    doc.text(`Issued: ${formatReportDate()}`, pageWidth - margin, y + 18, { align: 'right' });
-    doc.text(`Reference: ${reportReference}`, pageWidth - margin, y + 22, { align: 'right' });
-
-    setDrawColor(BLACK);
-    doc.setLineWidth(0.25);
-    doc.line(margin, y + 28, pageWidth - margin, y + 28);
-    y += 33;
-  };
-
-  const addFooter = (pageNumber: number, totalPages: number) => {
-    setDrawColor(BLACK);
-    doc.setLineWidth(0.3);
-    doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.2);
-    setTextColor(MID_GRAY);
-    doc.text(
-      'Innovera for Intelligent Software Solutions | Official Evaluation Record',
-      margin,
-      pageHeight - 10,
-    );
-    doc.text(
-      `Page ${pageNumber} of ${totalPages} | Ref: ${reportReference}`,
-      pageWidth - margin,
-      pageHeight - 10,
-      { align: 'right' },
-    );
-  };
-
-  const checkPageBreak = (neededHeight: number) => {
-    if (y + neededHeight <= contentBottom) return;
-    doc.addPage();
-    y = 16;
-    addHeader();
-  };
-
-  const drawSectionHeading = (number: number, title: string) => {
-    checkPageBreak(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.2);
-    setTextColor(BLACK);
-    doc.text(`${number}. ${title}`, margin, y);
-    setDrawColor(DARK_GRAY);
-    doc.setLineWidth(0.25);
-    doc.line(margin, y + 2, pageWidth - margin, y + 2);
-    y += 9;
-  };
-
-  const drawCenteredCellText = (
-    text: string,
-    x: number,
-    top: number,
-    width: number,
-    height: number,
-    fontSize: number,
-    bold = false,
-  ) => {
+  const textColor = (color: Color) => doc.setTextColor(...color);
+  const drawColor = (color: Color) => doc.setDrawColor(...color);
+  const fillColor = (color: Color) => doc.setFillColor(...color);
+  const wrap = (value: string, width: number, size: number, bold = false): string[] => {
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
-    doc.setFontSize(fontSize);
-    setTextColor(BLACK);
-    doc.text(text, x + width / 2, top + height / 2 + fontSize * 0.13, { align: 'center' });
+    doc.setFontSize(size);
+    return doc.splitTextToSize(value, width) as string[];
+  };
+
+  const addHeader = (continued = false) => {
+    doc.addImage(officialLogo, 'PNG', margin, 16, 43, 12.8);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.3);
+    textColor(MUTED);
+    doc.text('Innovera for Intelligent Software Solutions', margin, 32);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    textColor(INK);
+    doc.text('Internship evaluation report', pageWidth - margin, 22, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    textColor(MUTED);
+    doc.text(continued ? 'Continued' : `Issued ${formatReportDate()}`, pageWidth - margin, 29, { align: 'right' });
+    drawColor(RULE);
+    doc.setLineWidth(0.3);
+    doc.line(margin, 38, pageWidth - margin, 38);
+    y = 41;
+  };
+
+  const newPage = () => {
+    doc.addPage();
+    addHeader(true);
+  };
+  const ensureSpace = (height: number) => {
+    if (y + height > contentBottom) newPage();
+  };
+  const section = (number: number, title: string, followingHeight = 12) => {
+    ensureSpace(8 + followingHeight);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    textColor(INK);
+    doc.text(`${number}. ${title}`, margin, y);
+    drawColor(RULE);
+    doc.setLineWidth(0.25);
+    doc.line(margin, y + 2.5, pageWidth - margin, y + 2.5);
+    y += 8;
   };
 
   addHeader();
 
-  // Document control
-  checkPageBreak(18);
-  const controlHeaders = ['DOCUMENT CLASSIFICATION', 'REPORTING PERIOD', 'ISSUING DEPARTMENT'];
-  const controlValues = ['Official Evaluation Record', 'Summer Internship Program', 'Learning & Development'];
-  const controlWidth = contentWidth / 3;
-  const controlTop = y;
-
-  for (let index = 0; index < 3; index += 1) {
-    const x = margin + index * controlWidth;
-    setFillColor(PALE_GRAY);
-    setDrawColor(LIGHT_GRAY);
-    doc.rect(x, controlTop, controlWidth, 6, 'FD');
-    doc.rect(x, controlTop + 6, controlWidth, 8, 'S');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.1);
-    setTextColor(MID_GRAY);
-    doc.text(controlHeaders[index], x + 3, controlTop + 4);
-
+  // Document control: these are descriptive fields, not fabricated dates.
+  const control = [
+    ['Document', 'Official evaluation record'],
+    ['Program', 'Internship program'],
+    ['Issued by', 'Learning & Development'],
+  ];
+  const controlWidth = contentWidth / control.length;
+  control.forEach(([label, value], index) => {
+    const x = margin + controlWidth * index;
+    if (index > 0) {
+      drawColor(RULE);
+      doc.line(x, y + 1, x, y + 14);
+    }
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.7);
-    setTextColor(BLACK);
-    doc.text(controlValues[index], x + 3, controlTop + 11);
-  }
-  setDrawColor(DARK_GRAY);
-  doc.setLineWidth(0.3);
-  doc.rect(margin, controlTop, contentWidth, 14, 'S');
-  y += 17;
+    doc.setFontSize(7.6);
+    textColor(MUTED);
+    doc.text(label, x + 3, y + 5);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.8);
+    textColor(INK);
+    doc.text(value, x + 3, y + 11);
+  });
+  drawColor(RULE);
+  doc.line(margin, y + 15, pageWidth - margin, y + 15);
+  y += 19;
 
-  // Candidate and program information
-  drawSectionHeading(1, 'CANDIDATE AND PROGRAM INFORMATION');
+  // Candidate and program information. Height follows wrapped text.
+  const studentLines = wrap(cleanText(data.studentName) || 'Student name unavailable', 78, 10.5, true);
+  const trackLines = wrap(cleanText(data.courseTitle) || 'Internship program track', 78, 10.5, true);
+  const profileHeight = 21 + Math.max(studentLines.length, trackLines.length) * 5;
+  section(1, 'Candidate and program information', profileHeight);
   const profileTop = y;
-  const profileHeight = data.phone || data.personalEmail ? 33 : 25;
-  const columnGap = 9;
-  const columnWidth = (contentWidth - columnGap) / 2;
-
-  const drawLabelValue = (x: number, top: number, label: string, value: string, width: number) => {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.8);
-    setTextColor(MID_GRAY);
-    doc.text(label, x, top);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.3);
-    setTextColor(BLACK);
-    const lines = doc.splitTextToSize(value, width) as string[];
-    doc.text(lines.slice(0, 2), x, top + 5);
-  };
-
-  drawLabelValue(margin, profileTop, 'CANDIDATE / INTERN NAME', cleanText(data.studentName) || 'Student Name', columnWidth);
-  drawLabelValue(
-    margin + columnWidth + columnGap,
-    profileTop,
-    'PROGRAM / TRACK TITLE',
-    cleanText(data.courseTitle) || 'Internship Program Track',
-    columnWidth,
-  );
-  drawLabelValue(margin, profileTop + 17, 'STUDENT CODE / ID', cleanText(data.studentCode) || 'N/A', columnWidth);
-  drawLabelValue(
-    margin + columnWidth + columnGap,
-    profileTop + 17,
-    'EVALUATION STATUS',
-    (cleanText(data.classification) || 'ACTIVE').toUpperCase(),
-    columnWidth,
-  );
-
-  if (data.phone || data.personalEmail) {
+  const profileColumn = (x: number, label: string, lines: string[]) => {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.8);
-    setTextColor(MID_GRAY);
-    const contact = [
-      data.phone ? `Phone: ${cleanText(data.phone)}` : '',
-      data.personalEmail ? `Email: ${cleanText(data.personalEmail)}` : '',
-    ].filter(Boolean).join(' | ');
-    doc.text(contact, margin, profileTop + 29);
-  }
+    doc.setFontSize(8);
+    textColor(MUTED);
+    doc.text(label, x, profileTop + 2);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    textColor(INK);
+    lines.forEach((line, index) => doc.text(line, x, profileTop + 9 + index * 5));
+  };
+  profileColumn(margin, 'Candidate / intern name', studentLines);
+  profileColumn(margin + 91, 'Program / track', trackLines);
+  y = profileTop + 10 + Math.max(studentLines.length, trackLines.length) * 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  textColor(MUTED);
+  doc.text('Evaluation status', margin, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  textColor(INK);
+  doc.text(cleanText(data.classification) || 'Active', margin + 34, y);
+  y += 9;
 
-  setDrawColor(LIGHT_GRAY);
-  doc.setLineWidth(0.25);
-  doc.line(
-    margin + columnWidth + columnGap / 2,
-    profileTop - 2,
-    margin + columnWidth + columnGap / 2,
-    profileTop + profileHeight - 4,
+  // Summary uses a two-row grid so labels and numbers remain legible.
+  section(2, 'Evaluation summary', 39);
+  const tasks = (data.tasks || []).map(normalizeTaskRatings);
+  const average = (key: 'communication_rating' | 'quality_rating' | 'teamwork_rating') => (
+    tasks.length ? tasks.reduce((total, task) => total + Number(task[key] ?? 0), 0) / tasks.length : null
   );
-  y += profileHeight + 2;
-
-  // Evaluation summary
-  drawSectionHeading(2, 'EVALUATION SUMMARY');
+  const communication = average('communication_rating');
+  const quality = average('quality_rating');
+  const teamwork = average('teamwork_rating');
   const attendanceRate = data.attendanceRate !== undefined
     ? Math.round(data.attendanceRate)
-    : data.totalDays > 0
-      ? Math.round((data.attendedDays / data.totalDays) * 100)
-      : 0;
-  const tasks = (data.tasks ?? []).map(normalizeTaskRatings);
-  const tasksCount = tasks.length;
-  const average = (key: 'communication_rating' | 'quality_rating' | 'teamwork_rating') => {
-    if (tasksCount === 0) return null;
-    return tasks.reduce((sum, task) => sum + Number(task[key] ?? 0), 0) / tasksCount;
-  };
-  const averageCommunication = average('communication_rating');
-  const averageQuality = average('quality_rating');
-  const averageTeamwork = average('teamwork_rating');
-  const summaryHeaders = ['ATTENDANCE', 'TASKS COMPLETED', 'COMMUNICATION', 'TASK QUALITY', 'TEAMWORK', 'OVERALL SCORE'];
-  const summaryValues = [
-    `${data.attendedDays} / ${data.totalDays}`,
-    `${tasksCount}`,
-    averageCommunication === null ? 'N/A' : `${averageCommunication.toFixed(1)} / ${TASK_RATING_MAX}.0`,
-    averageQuality === null ? 'N/A' : `${averageQuality.toFixed(1)} / ${TASK_RATING_MAX}.0`,
-    averageTeamwork === null ? 'N/A' : `${averageTeamwork.toFixed(1)} / ${TASK_RATING_MAX}.0`,
-    `${data.overallScore ?? 0} / 100`,
+    : data.totalDays > 0 ? Math.round(data.attendedDays / data.totalDays * 100) : 0;
+  const summary = [
+    ['Attendance', `${data.attendedDays} / ${data.totalDays}`, `${attendanceRate}% attended`],
+    ['Tasks completed', `${tasks.length}`, 'Deliverables'],
+    ['Overall score', `${data.overallScore ?? 0} / 100`, cleanText(data.classification) || 'Active'],
+    ['Communication', communication === null ? 'N/A' : `${communication.toFixed(1)} / ${TASK_RATING_MAX}`, communication === null ? 'Not evaluated' : 'Average rating'],
+    ['Task quality', quality === null ? 'N/A' : `${quality.toFixed(1)} / ${TASK_RATING_MAX}`, quality === null ? 'Not evaluated' : 'Average rating'],
+    ['Teamwork', teamwork === null ? 'N/A' : `${teamwork.toFixed(1)} / ${TASK_RATING_MAX}`, teamwork === null ? 'Not evaluated' : 'Average rating'],
   ];
-  const summaryDetails = [
-    `${attendanceRate}%`,
-    'Deliverables',
-    averageCommunication === null ? 'Not evaluated' : `${Math.round((averageCommunication / TASK_RATING_MAX) * 100)}%`,
-    averageQuality === null ? 'Not evaluated' : `${Math.round((averageQuality / TASK_RATING_MAX) * 100)}%`,
-    averageTeamwork === null ? 'Not evaluated' : `${Math.round((averageTeamwork / TASK_RATING_MAX) * 100)}%`,
-    cleanText(data.classification) || 'Active',
-  ];
-  const summaryCellWidth = contentWidth / 6;
-  const summaryTop = y;
-
-  summaryHeaders.forEach((header, index) => {
-    const x = margin + index * summaryCellWidth;
-    setFillColor(DARK_GRAY);
-    setDrawColor(LIGHT_GRAY);
-    doc.rect(x, summaryTop, summaryCellWidth, 6, 'FD');
+  const summaryWidth = contentWidth / 3;
+  summary.forEach(([label, value, detail], index) => {
+    const x = margin + index % 3 * summaryWidth;
+    const top = y + Math.floor(index / 3) * 18;
+    fillColor(PALE);
+    drawColor(RULE);
+    doc.rect(x, top, summaryWidth, 18, 'FD');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    textColor(MUTED);
+    doc.text(label, x + 3, top + 4.5);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(5.5);
-    doc.setTextColor(255, 255, 255);
-    doc.text(header, x + summaryCellWidth / 2, summaryTop + 4, { align: 'center' });
-
-    doc.rect(x, summaryTop + 6, summaryCellWidth, 8, 'S');
-    drawCenteredCellText(summaryValues[index], x, summaryTop + 6, summaryCellWidth, 8, 9, true);
-
-    doc.rect(x, summaryTop + 14, summaryCellWidth, 6, 'S');
-    drawCenteredCellText(summaryDetails[index], x, summaryTop + 14, summaryCellWidth, 6, 6.7);
+    doc.setFontSize(11);
+    textColor(INK);
+    doc.text(value, x + 3, top + 10.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    textColor(MUTED);
+    doc.text(detail, x + 3, top + 15.5);
   });
-  setDrawColor(DARK_GRAY);
-  doc.setLineWidth(0.3);
-  doc.rect(margin, summaryTop, contentWidth, 20, 'S');
-  y += 25;
+  y += 41;
 
-  // Detailed deliverables table
-  drawSectionHeading(3, 'DETAILED DELIVERABLES AND EVALUATION BREAKDOWN');
-  const columnWidths = [9, 68, 26, 22, 24, 25];
-  const taskHeaders = ['NO.', 'TASK TITLE / DELIVERABLE', 'COMMUNICATION', 'QUALITY', 'TEAMWORK', 'SCORE'];
-
+  // Task rows may continue over multiple pages; no title or note is shortened.
+  section(3, 'Deliverables and evaluation breakdown', 23);
+  const columnWidths = [9, 61, 27, 23, 24, 30];
+  const taskHeaders = ['No.', 'Task / deliverable', 'Communication', 'Quality', 'Teamwork', 'Task score'];
   const drawTaskHeader = () => {
-    const headerTop = y;
+    if (y + 21 > contentBottom) newPage();
     let x = margin;
+    fillColor(PALE);
+    drawColor(RULE);
+    doc.rect(margin, y, contentWidth, 9, 'FD');
     taskHeaders.forEach((header, index) => {
-      setFillColor(DARK_GRAY);
-      setDrawColor(LIGHT_GRAY);
-      doc.rect(x, headerTop, columnWidths[index], 7, 'FD');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(index === 1 ? 5.8 : 5.4);
-      doc.setTextColor(255, 255, 255);
-      doc.text(
-        header,
-        index === 1 ? x + 2 : x + columnWidths[index] / 2,
-        headerTop + 4.5,
-        { align: index === 1 ? 'left' : 'center' },
-      );
+      doc.setFontSize(index === 2 ? 6.6 : 7.2);
+      textColor(INK);
+      doc.text(header, index === 1 ? x + 2 : x + columnWidths[index] / 2, y + 5.7, {
+        align: index === 1 ? 'left' : 'center',
+      });
       x += columnWidths[index];
     });
-    y += 7;
+    y += 9;
   };
-
-  drawTaskHeader();
-
-  if (tasksCount === 0) {
-    const rowHeight = 13;
-    setDrawColor(LIGHT_GRAY);
-    doc.rect(margin, y, contentWidth, rowHeight, 'S');
+  const drawRowFrame = (height: number, shaded: boolean) => {
+    if (shaded) {
+      fillColor(PALE);
+      doc.rect(margin, y, contentWidth, height, 'F');
+    }
+    drawColor(RULE);
+    doc.setLineWidth(0.2);
+    doc.rect(margin, y, contentWidth, height, 'S');
     let x = margin;
     columnWidths.slice(0, -1).forEach((width) => {
       x += width;
-      doc.line(x, y, x, y + rowHeight);
+      doc.line(x, y, x, y + height);
     });
-    drawCenteredCellText('-', margin, y, columnWidths[0], rowHeight, 7);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.2);
-    setTextColor(BLACK);
-    const emptyLines = doc.splitTextToSize(
-      'No individual task submissions were recorded for this evaluation cycle.',
-      columnWidths[1] - 6,
-    ) as string[];
-    doc.text(emptyLines, margin + columnWidths[0] + 3, y + 5);
+  };
+  const cellText = (value: string, x: number, width: number, height: number, bold = false) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(8);
+    textColor(INK);
+    doc.text(value, x + width / 2, y + height / 2 + 1.1, { align: 'center' });
+  };
 
-    let valueX = margin + columnWidths[0] + columnWidths[1];
-    for (let index = 2; index < columnWidths.length; index += 1) {
-      drawCenteredCellText('-', valueX, y, columnWidths[index], rowHeight, 7);
-      valueX += columnWidths[index];
-    }
-    y += rowHeight;
+  drawTaskHeader();
+  if (tasks.length === 0) {
+    const message = wrap('No individual task submissions were recorded for this evaluation cycle.', columnWidths[1] - 5, 8.5);
+    const height = Math.max(14, message.length * 4.2 + 5);
+    if (y + height > contentBottom) { newPage(); drawTaskHeader(); }
+    drawRowFrame(height, false);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    textColor(MUTED);
+    message.forEach((line, index) => doc.text(line, margin + columnWidths[0] + 2.5, y + 5 + index * 4.2));
+    y += height;
   } else {
     tasks.forEach((task, index) => {
-      const rawTitleLines = doc.splitTextToSize(
-        cleanText(task.title) || `Task ${index + 1}`,
-        columnWidths[1] - 6,
-      ) as string[];
-      const titleLines = rawTitleLines.slice(0, 12);
-      if (rawTitleLines.length > titleLines.length) {
-        titleLines[titleLines.length - 1] = `${titleLines[titleLines.length - 1].replace(/[.\s]+$/, '')}...`;
-      }
-      const rawNoteLines = cleanText(task.note)
-        ? doc.splitTextToSize(`Note: ${cleanText(task.note)}`, columnWidths[1] - 6) as string[]
+      const titleLines = wrap(cleanText(task.title) || `Task ${index + 1}`, columnWidths[1] - 5, 8.5, true);
+      const noteLines = cleanText(task.note)
+        ? wrap(`Note: ${cleanText(task.note)}`, columnWidths[1] - 5, 7.8)
         : [];
-      const noteLines = rawNoteLines.slice(0, 4);
-      if (rawNoteLines.length > noteLines.length && noteLines.length > 0) {
-        noteLines[noteLines.length - 1] = `${noteLines[noteLines.length - 1].replace(/[.\s]+$/, '')}...`;
-      }
-      const rowHeight = Math.max(9, titleLines.length * 3.8 + noteLines.length * 3.2 + 4);
-
-      if (y + rowHeight > contentBottom) {
-        doc.addPage();
-        y = 16;
-        addHeader();
-        drawTaskHeader();
-      }
-
-      if (index % 2 === 1) {
-        setFillColor(PALE_GRAY);
-        doc.rect(margin, y, contentWidth, rowHeight, 'F');
-      }
-
-      setDrawColor(LIGHT_GRAY);
-      doc.rect(margin, y, contentWidth, rowHeight, 'S');
-      let x = margin;
-      columnWidths.slice(0, -1).forEach((width) => {
-        x += width;
-        doc.line(x, y, x, y + rowHeight);
-      });
-
-      drawCenteredCellText(`${index + 1}`, margin, y, columnWidths[0], rowHeight, 7.4);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.4);
-      setTextColor(BLACK);
-      const titleX = margin + columnWidths[0] + 3;
-      doc.text(titleLines, titleX, y + 4.5);
-      if (noteLines.length > 0) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.1);
-        setTextColor(MID_GRAY);
-        doc.text(noteLines, titleX, y + 4.5 + titleLines.length * 3.8);
-      }
-
-      const communication = Number(task.communication_rating ?? 0);
-      const quality = Number(task.quality_rating ?? 0);
-      const teamwork = Number(task.teamwork_rating ?? 0);
-      const taskScore = averageTaskRating(task).toFixed(1);
-      const rowValues = [
-        `${communication.toFixed(1)} / ${TASK_RATING_MAX}.0`,
-        `${quality.toFixed(1)} / ${TASK_RATING_MAX}.0`,
-        `${teamwork.toFixed(1)} / ${TASK_RATING_MAX}.0`,
-        `${taskScore} / ${TASK_RATING_MAX}.0`,
+      const lines: TaskLine[] = [
+        ...titleLines.map((text): TaskLine => ({ text, kind: 'title', height: 4.2 })),
+        ...noteLines.map((text): TaskLine => ({ text, kind: 'note', height: 3.9 })),
       ];
-
-      let valueX = margin + columnWidths[0] + columnWidths[1];
-      rowValues.forEach((value, valueIndex) => {
-        const width = columnWidths[valueIndex + 2];
-        drawCenteredCellText(value, valueX, y, width, rowHeight, 7.1, valueIndex === 3);
-        valueX += width;
-      });
-      y += rowHeight;
+      let position = 0;
+      while (position < lines.length) {
+        if (y + 12 > contentBottom) { newPage(); drawTaskHeader(); }
+        const fragmentStart = position;
+        const fragment: TaskLine[] = [];
+        let usedHeight = 0;
+        const availableHeight = contentBottom - y - 6;
+        while (position < lines.length && usedHeight + lines[position].height <= availableHeight) {
+          fragment.push(lines[position]);
+          usedHeight += lines[position].height;
+          position += 1;
+        }
+        if (fragment.length === 0) { newPage(); drawTaskHeader(); continue; }
+        const height = Math.max(12, usedHeight + 6);
+        drawRowFrame(height, index % 2 === 1);
+        cellText(`${index + 1}`, margin, columnWidths[0], height);
+        if (fragmentStart > 0) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(5.5);
+          textColor(MUTED);
+          doc.text('cont.', margin + columnWidths[0] / 2, y + height / 2 + 4, { align: 'center' });
+        }
+        const ratings = [
+          Number(task.communication_rating ?? 0).toFixed(1),
+          Number(task.quality_rating ?? 0).toFixed(1),
+          Number(task.teamwork_rating ?? 0).toFixed(1),
+          averageTaskRating(task).toFixed(1),
+        ];
+        let x = margin + columnWidths[0] + columnWidths[1];
+        ratings.forEach((rating, ratingIndex) => {
+          const width = columnWidths[ratingIndex + 2];
+          cellText(`${rating} / ${TASK_RATING_MAX}`, x, width, height, ratingIndex === 3);
+          x += width;
+        });
+        let baseline = y + 4.7;
+        fragment.forEach((line) => {
+          doc.setFont('helvetica', line.kind === 'title' ? 'bold' : 'normal');
+          doc.setFontSize(line.kind === 'title' ? 8.5 : 7.8);
+          textColor(line.kind === 'title' ? INK : MUTED);
+          doc.text(line.text, margin + columnWidths[0] + 2.5, baseline);
+          baseline += line.height;
+        });
+        y += height;
+        if (position < lines.length) { newPage(); drawTaskHeader(); }
+      }
     });
   }
-  y += 5;
+  y += 3;
 
-  // Official narrative
   const feedback = cleanText(data.feedback)
-    || 'The candidate demonstrates consistent learning progress, professional conduct, and active commitment to assigned objectives. Performance during the evaluation period meets the requirements of the Summer Internship Program.';
-  const feedbackLines = doc.splitTextToSize(feedback, contentWidth - 14) as string[];
-  const feedbackLineHeight = 4.4;
-  checkPageBreak(42);
-  drawSectionHeading(4, 'OFFICIAL EVALUATION AND SUPERVISOR NOTES');
-  const remainingFeedbackLines = [...feedbackLines];
-
-  while (remainingFeedbackLines.length > 0) {
-    const availableHeight = contentBottom - y;
-    const finalLineCapacity = Math.max(1, Math.floor((availableHeight - 11) / feedbackLineHeight));
-    const isFinalBlock = remainingFeedbackLines.length <= finalLineCapacity;
-    const lineCapacity = isFinalBlock
-      ? finalLineCapacity
-      : Math.max(1, Math.floor((availableHeight - 8) / feedbackLineHeight));
-    const blockLines = remainingFeedbackLines.splice(0, lineCapacity);
-    const feedbackBoxHeight = Math.max(
-      isFinalBlock ? 21 : 16,
-      blockLines.length * feedbackLineHeight + (isFinalBlock ? 11 : 8),
-    );
-
-    setDrawColor(DARK_GRAY);
-    doc.setLineWidth(0.3);
-    doc.rect(margin, y, contentWidth, feedbackBoxHeight, 'S');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.2);
-    setTextColor(BLACK);
-    doc.text(blockLines, margin + 4, y + 7);
-
-    if (isFinalBlock && data.feedbackUpdatedAt) {
-      const updatedDate = new Date(data.feedbackUpdatedAt).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      setTextColor(MID_GRAY);
-      doc.text(`Evaluation updated: ${updatedDate}`, margin + 4, y + feedbackBoxHeight - 3.5);
+    || 'No supervisor evaluation notes were provided for this reporting cycle.';
+  const feedbackLines = wrap(feedback, contentWidth - 12, 9);
+  section(4, 'Supervisor evaluation and notes', 20);
+  let feedbackPosition = 0;
+  while (feedbackPosition < feedbackLines.length) {
+    const capacity = Math.floor((contentBottom - y - 10) / 4.6);
+    if (capacity < 1) {
+      newPage();
+      section(4, 'Supervisor evaluation and notes (continued)', 20);
+      continue;
     }
-
-    y += feedbackBoxHeight + 7;
-    if (remainingFeedbackLines.length > 0) {
-      doc.addPage();
-      y = 16;
-      addHeader();
-      drawSectionHeading(4, 'OFFICIAL EVALUATION AND SUPERVISOR NOTES (CONTINUED)');
+    const portion = feedbackLines.slice(feedbackPosition, feedbackPosition + capacity);
+    feedbackPosition += portion.length;
+    const boxHeight = portion.length * 4.6 + 10;
+    drawColor(RULE);
+    doc.rect(margin, y, contentWidth, boxHeight, 'S');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    textColor(INK);
+    portion.forEach((line, index) => doc.text(line, margin + 5, y + 6.5 + index * 4.6));
+    y += boxHeight + 3;
+    if (feedbackPosition < feedbackLines.length) {
+      newPage();
+      section(4, 'Supervisor evaluation and notes (continued)', 20);
+    }
+  }
+  if (data.feedbackUpdatedAt) {
+    const updated = new Date(data.feedbackUpdatedAt);
+    if (!Number.isNaN(updated.getTime())) {
+      ensureSpace(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      textColor(MUTED);
+      doc.text(`Evaluation updated: ${updated.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, margin, y);
+      y += 7;
     }
   }
 
-  // Administrative certification and official approvals
-  const certification = 'This document constitutes an official performance evaluation issued by Innovera. It certifies that the candidate has been assessed against the attendance, deliverable, communication, quality, and teamwork standards of the stated internship program.';
-  const certificationLines = doc.splitTextToSize(certification, contentWidth) as string[];
-  const approvalsWidth = contentWidth - 40;
-  const approvalsHeight = approvalsWidth * (520 / 1930);
-  checkPageBreak(certificationLines.length * 3.7 + approvalsHeight + 20);
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(6.8);
-  setTextColor(DARK_GRAY);
-  doc.text(certificationLines, margin, y);
-  y += certificationLines.length * 3.7 + 5;
+  const certification = 'This report records the candidate\'s assessment against the stated internship program criteria for attendance, deliverables, communication, task quality, and teamwork.';
+  const certificationLines = wrap(certification, contentWidth, 8.5);
+  ensureSpace(certificationLines.length * 4.3 + 50);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  textColor(MUTED);
+  certificationLines.forEach((line, index) => doc.text(line, margin, y + index * 4.3));
+  y += certificationLines.length * 4.3 + 8;
 
-  drawSectionHeading(5, 'AUTHORIZED APPROVALS');
-  doc.addImage(
-    officialApprovals,
-    'PNG',
-    margin + (contentWidth - approvalsWidth) / 2,
-    y + 1,
-    approvalsWidth,
-    approvalsHeight,
-  );
-  y += approvalsHeight + 2;
+  section(5, 'Authorised approvals', 34);
+  doc.addImage(mahaApproval, 'PNG', margin + 4, y + 1, 60, 33);
+  doc.addImage(officialSeal, 'PNG', pageWidth - margin - 48, y + 2, 33, 30);
 
   const totalPages = doc.getNumberOfPages();
-  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
-    doc.setPage(pageNumber);
-    addFooter(pageNumber, totalPages);
+  for (let page = 1; page <= totalPages; page += 1) {
+    doc.setPage(page);
+    drawColor(RULE);
+    doc.setLineWidth(0.25);
+    doc.line(margin, pageHeight - 16, pageWidth - margin, pageHeight - 16);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    textColor(MUTED);
+    doc.text('Innovera for Intelligent Software Solutions | Official evaluation record', margin, pageHeight - 11);
+    doc.text(`Page ${page} of ${totalPages}`, pageWidth - margin, pageHeight - 11, { align: 'right' });
   }
 
   const defaultFilename = `Evaluation_Report_${safeFilenamePart(data.studentName, 'Student')}_${safeFilenamePart(data.studentCode, 'INV')}.pdf`;
-  if (options.autoSave !== false) {
-    doc.save(options.filename || defaultFilename);
-  }
+  if (options.autoSave !== false) doc.save(options.filename || defaultFilename);
 
   void syncGeneratedPartnerDocument({
     studentCode: data.studentCode,

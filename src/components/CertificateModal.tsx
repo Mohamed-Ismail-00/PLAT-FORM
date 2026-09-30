@@ -76,18 +76,20 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
     let cancelled = false;
-    void renderStudentCertificatePreview(canvas, {
-      studentName: name,
-      studentCode,
-      courseTitle: track,
-      monthYear,
-      trainingPeriod,
-      certificateType,
-      courseHours,
-    }, () => !cancelled).catch((error) => {
-      if (!cancelled) console.error('Failed to render the certificate preview:', error);
-    });
-    return () => { cancelled = true; };
+    const timer = window.setTimeout(() => {
+      void renderStudentCertificatePreview(canvas, {
+        studentName: name,
+        studentCode,
+        courseTitle: track,
+        monthYear,
+        trainingPeriod,
+        certificateType,
+        courseHours,
+      }, () => !cancelled).catch((error) => {
+        if (!cancelled) console.error('Failed to render the certificate preview:', error);
+      });
+    }, 150);
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [isOpen, name, studentCode, track, monthYear, trainingPeriod, certificateType, courseHours]);
 
   if (!isOpen) return null;
@@ -95,6 +97,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const handleDownloadPDF = async () => {
     setGeneratingPdf(true);
     try {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       await generateStudentCertificatePDF({
         studentName: name,
         studentCode,
@@ -122,13 +125,14 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       console.error('Failed to generate PDF certificate:', err);
       alert('Error generating certificate PDF');
     } finally {
-      setTimeout(() => setGeneratingPdf(false), 500);
+      setGeneratingPdf(false);
     }
   };
 
   const handleDownloadPNG = async () => {
     setGeneratingPng(true);
     try {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       await generateStudentCertificatePNG({
         studentName: name,
         studentCode,
@@ -156,7 +160,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       console.error('Failed to generate PNG certificate:', err);
       alert('Error downloading certificate image');
     } finally {
-      setTimeout(() => setGeneratingPng(false), 500);
+      setGeneratingPng(false);
     }
   };
 

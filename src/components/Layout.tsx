@@ -6,9 +6,7 @@ import {
   LayoutDashboard, 
   BookOpen, 
   Calendar, 
-  Settings, 
   LogOut, 
-  User,
   Users,
   Activity,
   Menu,
@@ -18,6 +16,7 @@ import {
   ClipboardList,
   BarChart3
 } from 'lucide-react';
+import AdminDateTime from '../../frontend/src/components/AdminDateTime';
 
 const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
@@ -44,15 +43,18 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, o
         />
       )}
 
-      <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-        <div className="flex items-center justify-between" style={{ padding: '1.5rem 1rem', borderBottom: '1px solid var(--border-color)' }}>
-          <img src="/assets/logo.png" alt="Innovera" style={{ height: '36px', objectFit: 'contain' }} />
+      <div className={`sidebar ${isAdmin ? 'admin-sidebar' : ''} ${isOpen ? 'open' : ''}`}>
+        <div className={`sidebar-brand ${isAdmin ? 'admin-sidebar-brand' : ''}`}>
+          <div className="sidebar-brand-lockup">
+            <img src="/assets/logo.png" alt="Innovera" />
+            {isAdmin && <span className="admin-brand-caption">Intelligence<br />Observatory</span>}
+          </div>
           <button className="mobile-close-btn" onClick={onClose}>
             <X size={20} color="#94A3B8" />
           </button>
         </div>
 
-        <div className="flex flex-col" style={{ padding: '1rem', flex: 1, gap: '0.5rem' }}>
+        <div className={`flex flex-col sidebar-nav ${isAdmin ? 'admin-sidebar-nav' : ''}`}>
           <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginTop: '0.5rem', marginBottom: '0.5rem', paddingLeft: '1rem' }}>
             Menu
           </p>
@@ -95,7 +97,7 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, o
           )}
         </div>
 
-        <div className="sidebar-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem' }}>
+        <div className={`sidebar-footer ${isAdmin ? 'admin-sidebar-footer' : ''}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem' }}>
           <div className="user-profile-container" style={{ flex: 1, minWidth: 0 }}>
             <div className="user-avatar">
               {(user.first_name?.[0] || 'I')}{(user.last_name?.[0] || 'A')}
@@ -174,6 +176,7 @@ const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const isAdmin = user?.roles?.includes('admin') || user?.roles?.includes('super_admin');
 
   const handleLogout = () => {
     logout();
@@ -181,8 +184,10 @@ const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }
   };
 
   return (
-    <header className="header">
-      <div className="flex items-center gap-3">
+    <header className={`header ${isAdmin ? 'admin-header' : ''}`}>
+      {isAdmin && <AdminDateTime />}
+
+      <div className="flex items-center gap-3 header-user">
         <button className="mobile-menu-btn" onClick={onOpenMobileMenu}>
           <Menu size={24} color="var(--text-main)" />
         </button>
@@ -196,7 +201,7 @@ const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 header-actions">
         {/* Dark / Light Mode Toggle Button */}
         <button 
           onClick={toggleTheme}
@@ -217,6 +222,8 @@ const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }
         {/* Sign Out Button */}
         <button 
           onClick={handleLogout}
+          className={isAdmin ? 'admin-signout-btn' : ''}
+          aria-label="Sign out"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -241,7 +248,7 @@ const Header: React.FC<{ onOpenMobileMenu: () => void }> = ({ onOpenMobileMenu }
           }}
         >
           <LogOut size={16} />
-          <span>Sign Out</span>
+          <span className="sign-out-label">Sign Out</span>
         </button>
       </div>
     </header>
@@ -255,12 +262,14 @@ export const DashboardLayout: React.FC = () => {
   if (loading) return <div className="flex h-screen items-center justify-center font-bold" style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' }}>Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
+  const isAdmin = user.roles?.includes('admin') || user.roles?.includes('super_admin');
+
   return (
     <div className="layout-container">
       <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-      <div className="main-content">
+      <div className={`main-content ${isAdmin ? 'admin-main-content' : ''}`}>
         <Header onOpenMobileMenu={() => setMobileMenuOpen(true)} />
-        <main className="content-area">
+        <main className={`content-area ${isAdmin ? 'admin-content-area' : ''}`}>
           <Outlet />
         </main>
       </div>
